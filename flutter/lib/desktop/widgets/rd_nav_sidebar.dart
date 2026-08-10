@@ -10,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 
 /// Unified Views / Groups / Tags sidebar for RdClient-style home.
+/// Always uses RdClient dark tokens; avoids empty Obx (GetX improper-use errors).
 class RdNavSidebar extends StatefulWidget {
   const RdNavSidebar({Key? key}) : super(key: key);
 
@@ -154,7 +155,6 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
           ),
         );
       }
-      // Touch reactive lists so Obx tracks them.
       final groups = List.of(gFFI.groupModel.deviceGroups);
       final users = List.of(gFFI.groupModel.users);
       final selectedName = gFFI.groupModel.selectedAccessibleItemName.value;
