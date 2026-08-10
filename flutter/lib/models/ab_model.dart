@@ -214,6 +214,7 @@ class AbModel {
     _callbackPeerUpdate();
     if (listInitialized && current.initialized) {
       _saveCache();
+      await syncAliasesToLocalPeerConfigs();
     }
   }
 
@@ -651,6 +652,7 @@ class AbModel {
       _deserializeCache(data);
       legacyMode.value = addressbooks.containsKey(_legacyAddressBookName);
       trySetCurrentToLast();
+      await syncAliasesToLocalPeerConfigs();
     } catch (e) {
       debugPrint("load ab cache: $e");
     }
@@ -871,6 +873,36 @@ class AbModel {
       }
     }
     return getdefaultSharedPassword();
+  }
+
+  // Betterdesk/AB display name for Recent/Fav cards when local alias is empty.
+  String getAliasForPeerId(String id) {
+    for (final ab in addressbooks.values) {
+      final peer = ab.peers.firstWhereOrNull((e) => e.id == id);
+      if (peer != null && peer.alias.isNotEmpty) {
+        return peer.alias;
+      }
+    }
+    return '';
+  }
+
+  // Write AB aliases into local peer configs so Recent/Fav cards show them.
+  Future<void> syncAliasesToLocalPeerConfigs() async {
+    var synced = false;
+    for (final peer in allPeers()) {
+      if (peer.alias.isEmpty) continue;
+      try {
+        final local = bind.mainGetPeerOptionSync(id: peer.id, key: 'alias');
+        if (local.isEmpty) {
+          await bind.mainSetPeerAlias(id: peer.id, alias: peer.alias);
+          synced = true;
+        }
+      } catch (_) {}
+    }
+    if (synced) {
+      bind.mainLoadRecentPeers();
+      bind.mainLoadFavPeers();
+    }
   }
 
 // #endregion

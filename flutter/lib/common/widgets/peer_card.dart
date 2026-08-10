@@ -131,10 +131,18 @@ class _PeerCardState extends State<_PeerCard>
     return peerTabShowNote(widget.tab) && peer.note.isNotEmpty;
   }
 
-  // Betterdesk friendly name: alias, then note, then hostname (AB display label).
-  String _peerCardPrimaryText(Peer peer) {
+  // Betterdesk friendly name: local alias, AB alias/display name, note, hostname.
+  String _resolvedAlias(Peer peer) {
     if (peer.alias.isNotEmpty) {
       return peer.alias;
+    }
+    return gFFI.abModel.getAliasForPeerId(peer.id);
+  }
+
+  String _peerCardPrimaryText(Peer peer) {
+    final alias = _resolvedAlias(peer);
+    if (alias.isNotEmpty) {
+      return alias;
     }
     if (peer.note.isNotEmpty) {
       return peer.note;
@@ -145,10 +153,14 @@ class _PeerCardState extends State<_PeerCard>
     return formatID(peer.id);
   }
 
-  String _peerCardSecondaryText(Peer peer, String name) {
-    if (peer.alias.isNotEmpty ||
+  bool _peerCardHasFriendlyName(Peer peer) {
+    return _resolvedAlias(peer).isNotEmpty ||
         peer.note.isNotEmpty ||
-        peer.hostname.isNotEmpty) {
+        peer.hostname.isNotEmpty;
+  }
+
+  String _peerCardSecondaryText(Peer peer, String name) {
+    if (_peerCardHasFriendlyName(peer)) {
       return formatID(peer.id);
     }
     return name;
@@ -398,9 +410,7 @@ class _PeerCardState extends State<_PeerCard>
                         Expanded(
                             child: Builder(builder: (context) {
                           final primary = _peerCardPrimaryText(peer);
-                          final showIdBelow = peer.alias.isNotEmpty ||
-                              peer.note.isNotEmpty ||
-                              peer.hostname.isNotEmpty;
+                          final showIdBelow = _peerCardHasFriendlyName(peer);
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
