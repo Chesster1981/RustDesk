@@ -131,7 +131,7 @@ class _PeerCardState extends State<_PeerCard>
     return peerTabShowNote(widget.tab) && peer.note.isNotEmpty;
   }
 
-  // Prefer Betterdesk display name (alias); never use computer hostname here.
+  // Betterdesk friendly name: alias, then note, then hostname (AB display label).
   String _peerCardPrimaryText(Peer peer) {
     if (peer.alias.isNotEmpty) {
       return peer.alias;
@@ -139,11 +139,16 @@ class _PeerCardState extends State<_PeerCard>
     if (peer.note.isNotEmpty) {
       return peer.note;
     }
+    if (peer.hostname.isNotEmpty) {
+      return peer.hostname;
+    }
     return formatID(peer.id);
   }
 
   String _peerCardSecondaryText(Peer peer, String name) {
-    if (peer.alias.isNotEmpty || peer.note.isNotEmpty) {
+    if (peer.alias.isNotEmpty ||
+        peer.note.isNotEmpty ||
+        peer.hostname.isNotEmpty) {
       return formatID(peer.id);
     }
     return name;
@@ -393,8 +398,9 @@ class _PeerCardState extends State<_PeerCard>
                         Expanded(
                             child: Builder(builder: (context) {
                           final primary = _peerCardPrimaryText(peer);
-                          final showIdBelow =
-                              peer.alias.isNotEmpty || peer.note.isNotEmpty;
+                          final showIdBelow = peer.alias.isNotEmpty ||
+                              peer.note.isNotEmpty ||
+                              peer.hostname.isNotEmpty;
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
