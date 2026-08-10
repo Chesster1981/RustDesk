@@ -549,7 +549,7 @@ class _GeneralState extends State<_General> {
           kOptionEnableCheckUpdate,
           isServer: false,
         ),
-      if (showAutoUpdate)
+      if (showAutoUpdate && !kUseRdClientHomeShell)
         _OptionCheckBox(
           context,
           'Auto update',

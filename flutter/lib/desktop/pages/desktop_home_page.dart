@@ -13,6 +13,7 @@ import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
+import 'package:flutter_hbb/desktop/widgets/rd_account_bar.dart';
 import 'package:flutter_hbb/desktop/widgets/rd_home_header.dart';
 import 'package:flutter_hbb/desktop/widgets/rd_home_theme.dart';
 import 'package:flutter_hbb/desktop/widgets/rd_nav_sidebar.dart';
@@ -90,6 +91,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             RdHomeHeader(banner: _buildHelpBanner(context)),
+            if (!isIncomingOnly) const RdAccountBar(),
             if (!isIncomingOnly)
               Expanded(
                 child: Row(
