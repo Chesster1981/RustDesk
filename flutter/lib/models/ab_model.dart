@@ -862,6 +862,17 @@ class AbModel {
     }
   }
 
+  // Prefer peer-level password from any AB; fall back to current shared-book default.
+  String? getPasswordForPeerId(String id) {
+    for (final ab in addressbooks.values) {
+      final peer = ab.peers.firstWhereOrNull((e) => e.id == id);
+      if (peer != null && peer.password.isNotEmpty) {
+        return peer.password;
+      }
+    }
+    return getdefaultSharedPassword();
+  }
+
 // #endregion
 }
 
@@ -1101,7 +1112,6 @@ class LegacyAb extends BaseAb {
     bool full = false;
     for (var p in ps) {
       if (!isFull()) {
-        p.remove('password'); // legacy ab ignore password
         final index = peers.indexWhere((e) => e.id == p['id']);
         if (index >= 0) {
           _merge(Peer.fromJson(p), peers[index]);
@@ -1205,6 +1215,7 @@ class LegacyAb extends BaseAb {
 
   void _merge(Peer r, Peer p) {
     p.hash = r.hash.isEmpty ? p.hash : r.hash;
+    p.password = r.password.isEmpty ? p.password : r.password;
     p.username = r.username.isEmpty ? p.username : r.username;
     p.hostname = r.hostname.isEmpty ? p.hostname : r.hostname;
     p.platform = r.platform.isEmpty ? p.platform : r.platform;

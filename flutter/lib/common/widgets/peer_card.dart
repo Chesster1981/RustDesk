@@ -1611,17 +1611,15 @@ void connectInPeerTab(BuildContext context, Peer peer, PeerTabIndex tab,
         alias: peer.alias,
       );
     }
-    if (!gFFI.abModel.current.isPersonal()) {
-      if (peer.password.isNotEmpty) {
-        password = peer.password;
+    // Betterdesk/legacy personal AB stores plaintext password on the peer.
+    if (peer.password.isNotEmpty) {
+      password = peer.password;
+      isSharedPassword = true;
+    } else if (!gFFI.abModel.current.isPersonal()) {
+      final abPassword = gFFI.abModel.getdefaultSharedPassword();
+      if (abPassword != null) {
+        password = abPassword;
         isSharedPassword = true;
-      }
-      if (password.isEmpty) {
-        final abPassword = gFFI.abModel.getdefaultSharedPassword();
-        if (abPassword != null) {
-          password = abPassword;
-          isSharedPassword = true;
-        }
       }
     }
   }

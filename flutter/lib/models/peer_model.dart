@@ -33,7 +33,8 @@ class Peer {
   Peer.fromJson(Map<String, dynamic> json)
       : id = json['id'] ?? '',
         hash = json['hash'] ?? '',
-        password = json['password'] ?? '',
+        // Betterdesk/legacy AB may store plaintext under password or info.password.
+        password = _passwordFromJson(json),
         username = json['username'] ?? '',
         hostname = json['hostname'] ?? '',
         platform = json['platform'] ?? '',
@@ -55,6 +56,18 @@ class Peer {
       return value;
     }
     return value?.toString() ?? '';
+  }
+
+  static String _passwordFromJson(Map<String, dynamic> json) {
+    final direct = _stringOrEmpty(json['password']);
+    if (direct.isNotEmpty) {
+      return direct;
+    }
+    final info = json['info'];
+    if (info is Map) {
+      return _stringOrEmpty(info['password']);
+    }
+    return '';
   }
 
   Map<String, dynamic> toJson() {
@@ -88,6 +101,10 @@ class Peer {
     };
     if (includingHash) {
       res['hash'] = hash;
+    }
+    // Keep Betterdesk plaintext passwords across cache/push round-trips.
+    if (password.isNotEmpty) {
+      res['password'] = password;
     }
     return res;
   }

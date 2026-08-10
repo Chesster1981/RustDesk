@@ -2607,6 +2607,17 @@ connect(BuildContext context, String id,
   assert(!(isFileTransfer && isTcpTunneling && isRDP),
       "more than one connect type");
 
+  // Apply Betterdesk/AB stored password when the caller did not supply one.
+  if (password == null || password.isEmpty) {
+    try {
+      final abPassword = gFFI.abModel.getPasswordForPeerId(id);
+      if (abPassword != null && abPassword.isNotEmpty) {
+        password = abPassword;
+        isSharedPassword = true;
+      }
+    } catch (_) {}
+  }
+
   if (isDesktop) {
     if (desktopType == DesktopType.main) {
       await connectMainDesktop(
