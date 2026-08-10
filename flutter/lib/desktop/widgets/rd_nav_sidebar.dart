@@ -18,9 +18,9 @@ class RdNavSidebar extends StatefulWidget {
 }
 
 class _RdNavSidebarState extends State<RdNavSidebar> {
-  final _viewsOpen = true.obs;
-  final _groupsOpen = true.obs;
-  final _tagsOpen = true.obs;
+  bool _viewsOpen = true;
+  bool _groupsOpen = true;
+  bool _tagsOpen = true;
 
   Future<void> _selectView(int tabIndex) async {
     final model = gFFI.peerTabModel;
@@ -39,69 +39,61 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg =
-        isDark ? RdHomeTheme.surface : Theme.of(context).colorScheme.background;
-    final border =
-        isDark ? RdHomeTheme.border : Theme.of(context).dividerColor;
-
     return Container(
       width: 220,
       margin: const EdgeInsets.only(left: 16, right: 8, bottom: 8),
       decoration: BoxDecoration(
-        color: bg,
+        color: RdHomeTheme.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: border),
+        border: Border.all(color: RdHomeTheme.border),
       ),
       child: Consumer<PeerTabModel>(
         builder: (context, model, _) {
-          return Obx(() => ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                children: [
-                  _section(
-                    context,
-                    title: translate('Views'),
-                    open: _viewsOpen,
-                    child: Column(
-                      children: model.visibleEnabledOrderedIndexs
-                          .map((t) => _viewItem(context, model, t, isDark))
-                          .toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _section(
-                    context,
-                    title: translate('Groups'),
-                    open: _groupsOpen,
-                    child: _groupsBody(context, model, isDark),
-                  ),
-                  const SizedBox(height: 8),
-                  _section(
-                    context,
-                    title: translate('Tags'),
-                    open: _tagsOpen,
-                    child: _tagsBody(context, model, isDark),
-                  ),
-                ],
-              ));
+          return ListView(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            children: [
+              _section(
+                title: translate('Views'),
+                open: _viewsOpen,
+                onToggle: () => setState(() => _viewsOpen = !_viewsOpen),
+                child: Column(
+                  children: model.visibleEnabledOrderedIndexs
+                      .map((t) => _viewItem(model, t))
+                      .toList(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              _section(
+                title: translate('Groups'),
+                open: _groupsOpen,
+                onToggle: () => setState(() => _groupsOpen = !_groupsOpen),
+                child: _groupsBody(model),
+              ),
+              const SizedBox(height: 8),
+              _section(
+                title: translate('Tags'),
+                open: _tagsOpen,
+                onToggle: () => setState(() => _tagsOpen = !_tagsOpen),
+                child: _tagsBody(model),
+              ),
+            ],
+          );
         },
       ),
     );
   }
 
-  Widget _section(
-    BuildContext context, {
+  Widget _section({
     required String title,
-    required RxBool open,
+    required bool open,
+    required VoidCallback onToggle,
     required Widget child,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final muted = isDark ? RdHomeTheme.textMuted : Colors.grey;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         InkWell(
-          onTap: () => open.value = !open.value,
+          onTap: onToggle,
           borderRadius: BorderRadius.circular(6),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
@@ -110,39 +102,34 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
                 Expanded(
                   child: Text(
                     title.toUpperCase(),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.6,
-                      color: muted,
+                      color: RdHomeTheme.textMuted,
                     ),
                   ),
                 ),
-                Obx(() => Icon(
-                      open.value
-                          ? Icons.expand_more
-                          : Icons.chevron_right,
-                      size: 18,
-                      color: muted,
-                    )),
+                Icon(
+                  open ? Icons.expand_more : Icons.chevron_right,
+                  size: 18,
+                  color: RdHomeTheme.textMuted,
+                ),
               ],
             ),
           ),
         ),
-        Obx(() => open.value ? child : const SizedBox.shrink()),
+        if (open) child,
       ],
     );
   }
 
-  Widget _viewItem(
-      BuildContext context, PeerTabModel model, int tabIndex, bool isDark) {
+  Widget _viewItem(PeerTabModel model, int tabIndex) {
     final selected = model.currentTab == tabIndex;
     final count = tabIndex == model.currentTab
         ? model.currentTabCachedPeers.length
         : null;
     return _navTile(
-      context,
-      isDark: isDark,
       selected: selected,
       icon: model.tabIcon(tabIndex),
       label: model.tabTooltip(tabIndex),
@@ -151,129 +138,121 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
     );
   }
 
-  Widget _groupsBody(
-      BuildContext context, PeerTabModel model, bool isDark) {
+  Widget _groupsBody(PeerTabModel model) {
     if (!model.isEnabled[PeerTabIndex.group.index]) {
-      return _emptyHint(context, translate('Disabled'));
+      return _emptyHint(translate('Disabled'));
     }
     return Obx(() {
-      if (!gFFI.userModel.isLogin) {
+      final loggedIn = gFFI.userModel.userName.value.isNotEmpty;
+      if (!loggedIn) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: TextButton(
             onPressed: loginDialog,
-            child: Text(translate('Login'), style: const TextStyle(fontSize: 12)),
+            child:
+                Text(translate('Login'), style: const TextStyle(fontSize: 12)),
           ),
         );
       }
-      final groups = gFFI.groupModel.deviceGroups.toList();
-      final users = gFFI.groupModel.users.toList();
+      // Touch reactive lists so Obx tracks them.
+      final groups = List.of(gFFI.groupModel.deviceGroups);
+      final users = List.of(gFFI.groupModel.users);
+      final selectedName = gFFI.groupModel.selectedAccessibleItemName.value;
+      final selectedIsDevice = gFFI.groupModel.isSelectedDeviceGroup.value;
+      final onGroupTab = model.currentTab == PeerTabIndex.group.index;
+
       if (groups.isEmpty && users.isEmpty) {
-        return _emptyHint(context, translate('No groups'));
-      }
-      final children = <Widget>[];
-      for (final g in groups) {
-        children.add(_groupItem(context, g.name, true, isDark));
-      }
-      for (final u in users) {
-        children.add(_groupItem(context, u.name, false, isDark,
-            display: u.displayNameOrName));
-      }
-      return Column(children: children);
-    });
-  }
-
-  Widget _groupItem(
-    BuildContext context,
-    String name,
-    bool isDeviceGroup,
-    bool isDark, {
-    String? display,
-  }) {
-    return Obx(() {
-      final selected = gFFI.peerTabModel.currentTab == PeerTabIndex.group.index &&
-          gFFI.groupModel.isSelectedDeviceGroup.value == isDeviceGroup &&
-          gFFI.groupModel.selectedAccessibleItemName.value == name;
-      return _navTile(
-        context,
-        isDark: isDark,
-        selected: selected,
-        icon: isDeviceGroup ? IconFont.deviceGroupOutline : Icons.person_outline,
-        label: display ?? name,
-        onTap: () async {
-          await _selectView(PeerTabIndex.group.index);
-          gFFI.groupModel.isSelectedDeviceGroup.value = isDeviceGroup;
-          if (gFFI.groupModel.selectedAccessibleItemName.value == name) {
-            gFFI.groupModel.selectedAccessibleItemName.value = '';
-          } else {
-            gFFI.groupModel.selectedAccessibleItemName.value = name;
-          }
-        },
-      );
-    });
-  }
-
-  Widget _tagsBody(BuildContext context, PeerTabModel model, bool isDark) {
-    if (model.currentTab != PeerTabIndex.ab.index) {
-      return _emptyHint(
-          context, translate('Switch to Address book to filter tags'));
-    }
-    return Obx(() {
-      if (!gFFI.userModel.isLogin) {
-        return _emptyHint(context, translate('Login'));
-      }
-      final tags = gFFI.abModel.currentAbTags.toList();
-      if (tags.isEmpty) {
-        return _emptyHint(context, translate('No tags'));
+        return _emptyHint(translate('No groups'));
       }
       return Column(
-        children: tags
-            .map((tag) => _tagItem(context, tag, isDark))
-            .toList(),
+        children: [
+          for (final g in groups)
+            _navTile(
+              selected: onGroupTab && selectedIsDevice && selectedName == g.name,
+              icon: IconFont.deviceGroupOutline,
+              label: g.name,
+              onTap: () async {
+                await _selectView(PeerTabIndex.group.index);
+                gFFI.groupModel.isSelectedDeviceGroup.value = true;
+                if (gFFI.groupModel.selectedAccessibleItemName.value == g.name) {
+                  gFFI.groupModel.selectedAccessibleItemName.value = '';
+                } else {
+                  gFFI.groupModel.selectedAccessibleItemName.value = g.name;
+                }
+              },
+            ),
+          for (final u in users)
+            _navTile(
+              selected:
+                  onGroupTab && !selectedIsDevice && selectedName == u.name,
+              icon: Icons.person_outline,
+              label: u.displayNameOrName,
+              onTap: () async {
+                await _selectView(PeerTabIndex.group.index);
+                gFFI.groupModel.isSelectedDeviceGroup.value = false;
+                if (gFFI.groupModel.selectedAccessibleItemName.value == u.name) {
+                  gFFI.groupModel.selectedAccessibleItemName.value = '';
+                } else {
+                  gFFI.groupModel.selectedAccessibleItemName.value = u.name;
+                }
+              },
+            ),
+        ],
       );
     });
   }
 
-  Widget _tagItem(BuildContext context, String tag, bool isDark) {
+  Widget _tagsBody(PeerTabModel model) {
+    if (model.currentTab != PeerTabIndex.ab.index) {
+      return _emptyHint(
+          translate('Switch to Address book to filter tags'));
+    }
     return Obx(() {
-      final selected = gFFI.abModel.selectedTags.contains(tag);
-      final tagColor = gFFI.abModel.getCurrentAbTagColor(tag);
-      return _navTile(
-        context,
-        isDark: isDark,
-        selected: selected,
-        icon: Icons.label_outline,
-        iconColor: tagColor,
-        label: tag,
-        onTap: () {
-          if (gFFI.abModel.selectedTags.contains(tag)) {
-            gFFI.abModel.selectedTags.remove(tag);
-          } else {
-            gFFI.abModel.selectedTags.add(tag);
-          }
-        },
+      final loggedIn = gFFI.userModel.userName.value.isNotEmpty;
+      if (!loggedIn) {
+        return _emptyHint(translate('Login'));
+      }
+      final tags = List.of(gFFI.abModel.currentAbTags);
+      final selected = List.of(gFFI.abModel.selectedTags);
+      if (tags.isEmpty) {
+        return _emptyHint(translate('No tags'));
+      }
+      return Column(
+        children: [
+          for (final tag in tags)
+            _navTile(
+              selected: selected.contains(tag),
+              icon: Icons.label_outline,
+              iconColor: gFFI.abModel.getCurrentAbTagColor(tag),
+              label: tag,
+              onTap: () {
+                if (gFFI.abModel.selectedTags.contains(tag)) {
+                  gFFI.abModel.selectedTags.remove(tag);
+                } else {
+                  gFFI.abModel.selectedTags.add(tag);
+                }
+              },
+            ),
+        ],
       );
     });
   }
 
-  Widget _emptyHint(BuildContext context, String text) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _emptyHint(String text) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
       child: Text(
         text,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 12,
           fontStyle: FontStyle.italic,
-          color: isDark ? RdHomeTheme.textMuted : Colors.grey,
+          color: RdHomeTheme.textMuted,
         ),
       ),
     );
   }
 
-  Widget _navTile(
-    BuildContext context, {
-    required bool isDark,
+  Widget _navTile({
     required bool selected,
     required IconData icon,
     required String label,
@@ -281,12 +260,7 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
     int? count,
     Color? iconColor,
   }) {
-    final fg = isDark ? RdHomeTheme.textPrimary : null;
-    final muted = isDark ? RdHomeTheme.textMuted : Colors.grey;
-    final selBg =
-        isDark ? RdHomeTheme.accent.withOpacity(0.15) : MyTheme.accent50;
-    final selFg = isDark ? RdHomeTheme.accent : MyTheme.accent;
-
+    final selBg = RdHomeTheme.accent.withOpacity(0.15);
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Material(
@@ -295,11 +269,15 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
           onTap: onTap,
+          hoverColor: RdHomeTheme.surface2,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: Row(
               children: [
-                Icon(icon, size: 18, color: iconColor ?? (selected ? selFg : muted)),
+                Icon(icon,
+                    size: 18,
+                    color: iconColor ??
+                        (selected ? RdHomeTheme.accent : RdHomeTheme.textMuted)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -308,15 +286,19 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                      color: selected ? selFg : fg,
+                      fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.w400,
+                      color: selected
+                          ? RdHomeTheme.accent
+                          : RdHomeTheme.textPrimary,
                     ),
                   ),
                 ),
                 if (count != null)
                   Text(
                     '$count',
-                    style: TextStyle(fontSize: 11, color: muted),
+                    style: const TextStyle(
+                        fontSize: 11, color: RdHomeTheme.textMuted),
                   ),
               ],
             ),

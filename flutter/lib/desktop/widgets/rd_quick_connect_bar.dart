@@ -89,47 +89,39 @@ class _RdQuickConnectBarState extends State<RdQuickConnectBar> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final barBg =
-        isDark ? RdHomeTheme.surface : Theme.of(context).colorScheme.background;
-    final border =
-        isDark ? RdHomeTheme.border : Theme.of(context).dividerColor;
-    final muted = isDark
-        ? RdHomeTheme.textMuted
-        : Theme.of(context).textTheme.bodySmall?.color;
-
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: barBg,
+        color: RdHomeTheme.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: border),
+        border: Border.all(color: RdHomeTheme.border),
       ),
       child: Row(
         children: [
-          Icon(Icons.connected_tv, size: 22, color: muted),
+          const Icon(Icons.connected_tv,
+              size: 22, color: RdHomeTheme.textMuted),
           const SizedBox(width: 10),
           Text(
             translate('Control Remote Desktop'),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: muted,
+              color: RdHomeTheme.textMuted,
             ),
           ),
           const SizedBox(width: 16),
-          Expanded(child: _buildIdField(context, isDark, border)),
+          Expanded(child: _buildIdField(context)),
           const SizedBox(width: 10),
           _connectButton(context),
           const SizedBox(width: 6),
-          _moreButton(context, isDark, border),
+          _moreButton(context),
         ],
       ),
     );
   }
 
-  Widget _buildIdField(BuildContext context, bool isDark, Color border) {
+  Widget _buildIdField(BuildContext context) {
     return RawAutocomplete<Peer>(
       optionsBuilder: (TextEditingValue textEditingValue) {
         if (textEditingValue.text == '') {
@@ -190,35 +182,34 @@ class _RdQuickConnectBarState extends State<RdQuickConnectBar> {
               enableSuggestions: false,
               keyboardType: TextInputType.visiblePassword,
               focusNode: fieldFocusNode,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'WorkSans',
                 fontSize: 16,
                 height: 1.3,
-                color: isDark ? RdHomeTheme.textPrimary : null,
+                color: RdHomeTheme.textPrimary,
               ),
               maxLines: 1,
-              cursorColor: Theme.of(context).textTheme.titleLarge?.color,
+              cursorColor: RdHomeTheme.accent,
               decoration: InputDecoration(
                 filled: true,
-                fillColor:
-                    isDark ? RdHomeTheme.bg : Theme.of(context).cardColor,
+                fillColor: RdHomeTheme.bg,
                 counterText: '',
                 hintText: _idInputFocused.value
                     ? null
                     : translate('Enter Remote ID'),
-                hintStyle: TextStyle(
-                  color: isDark ? RdHomeTheme.textMuted : null,
+                hintStyle: const TextStyle(
+                  color: RdHomeTheme.textMuted,
                   fontSize: 15,
                 ),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: border),
+                  borderSide: const BorderSide(color: RdHomeTheme.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: border),
+                  borderSide: const BorderSide(color: RdHomeTheme.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -257,6 +248,7 @@ class _RdQuickConnectBarState extends State<RdQuickConnectBar> {
         return Align(
           alignment: Alignment.topLeft,
           child: Material(
+            color: RdHomeTheme.surface2,
             elevation: 4,
             borderRadius: BorderRadius.circular(8),
             child: ConstrainedBox(
@@ -302,21 +294,21 @@ class _RdQuickConnectBarState extends State<RdQuickConnectBar> {
     );
   }
 
-  Widget _moreButton(BuildContext context, bool isDark, Color border) {
+  Widget _moreButton(BuildContext context) {
     return Container(
       height: 40,
       width: 40,
       decoration: BoxDecoration(
-        border: Border.all(color: border),
+        border: Border.all(color: RdHomeTheme.border),
         borderRadius: BorderRadius.circular(8),
+        color: RdHomeTheme.surface2,
       ),
       child: Obx(() => InkWell(
             borderRadius: BorderRadius.circular(8),
             child: Transform.rotate(
               angle: _menuOpen.value ? pi : 0,
-              child: Icon(IconFont.more,
-                  size: 14,
-                  color: isDark ? RdHomeTheme.textMuted : null),
+              child: const Icon(IconFont.more,
+                  size: 14, color: RdHomeTheme.textMuted),
             ),
             onTapDown: (e) async {
               final offset = e.globalPosition;

@@ -82,10 +82,6 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   Widget _buildRdClientShell(BuildContext context) {
     final isIncomingOnly = bind.isIncomingOnly();
     final isOutgoingOnly = bind.isOutgoingOnly();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark
-        ? RdHomeTheme.bg
-        : Theme.of(context).scaffoldBackgroundColor;
 
     Widget thisPcContent(BuildContext ctx) {
       return ChangeNotifierProvider.value(
@@ -100,9 +96,11 @@ class _DesktopHomePageState extends State<DesktopHomePage>
             if (!bind.isDisableSettings())
               ListTile(
                 dense: true,
-                leading: const Icon(Icons.settings, size: 18),
+                leading: const Icon(Icons.settings,
+                    size: 18, color: RdHomeTheme.textMuted),
                 title: Text(translate('Settings'),
-                    style: const TextStyle(fontSize: 13)),
+                    style: const TextStyle(
+                        fontSize: 13, color: RdHomeTheme.textPrimary)),
                 onTap: () {
                   Navigator.maybePop(ctx);
                   DesktopTabPage.onAddSetting();
@@ -113,79 +111,82 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       );
     }
 
-    return Container(
-      color: bg,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          RdHomeHeader(
-            showThisPc: !isOutgoingOnly,
-            thisPcBuilder: thisPcContent,
-            banner: _buildHelpBanner(context),
-          ),
-          if (!isIncomingOnly) const RdQuickConnectBar(),
-          if (!isIncomingOnly)
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const RdNavSidebar(),
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 16, bottom: 8),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? RdHomeTheme.surface
-                            : Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isDark
-                              ? RdHomeTheme.border
-                              : Theme.of(context).dividerColor,
+    // Always dark — matches BetterDesk RdClient desktop chrome.
+    return Theme(
+      data: MyTheme.darkTheme,
+      child: Container(
+        color: RdHomeTheme.bg,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            RdHomeHeader(
+              showThisPc: !isOutgoingOnly,
+              thisPcBuilder: thisPcContent,
+              banner: _buildHelpBanner(context),
+            ),
+            if (!isIncomingOnly) const RdQuickConnectBar(),
+            if (!isIncomingOnly)
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const RdNavSidebar(),
+                    Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 16, bottom: 8),
+                        decoration: BoxDecoration(
+                          color: RdHomeTheme.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: RdHomeTheme.border),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: ChangeNotifierProvider.value(
+                          value: gFFI.peerTabModel,
+                          child: const PeerTabPage(),
                         ),
                       ),
-                      clipBehavior: Clip.antiAlias,
-                      child: ChangeNotifierProvider.value(
-                        value: gFFI.peerTabModel,
-                        child: const PeerTabPage(),
-                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              )
+            else
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: thisPcContent(context),
+                ),
               ),
-            )
-          else
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: thisPcContent(context),
+            if (!isOutgoingOnly)
+              const Divider(height: 1, color: RdHomeTheme.border),
+            if (!isOutgoingOnly)
+              ColoredBox(
+                color: RdHomeTheme.surface,
+                child: OnlineStatusWidget(
+                  onSvcStatusChanged: () {
+                    if (isIncomingOnly && isInHomePage()) {
+                      Future.delayed(const Duration(milliseconds: 300), () {
+                        _updateWindowSize();
+                      });
+                    }
+                  },
+                ),
               ),
-            ),
-          if (!isOutgoingOnly) const Divider(height: 1),
-          if (!isOutgoingOnly)
-            OnlineStatusWidget(
-              onSvcStatusChanged: () {
-                if (isIncomingOnly && isInHomePage()) {
-                  Future.delayed(const Duration(milliseconds: 300), () {
-                    _updateWindowSize();
-                  });
-                }
-              },
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHelpBanner(BuildContext context) {
-    return FutureBuilder<Widget>(
-      future: Future.value(
-          Obx(() => buildHelpCards(stateGlobal.updateUrl.value))),
-      builder: (_, data) {
-        if (!data.hasData) return const SizedBox.shrink();
-        return data.data!;
-      },
-    );
+    // Avoid nested Obx-without-obs via FutureBuilder; read updateUrl in Obx.
+    return Obx(() {
+      final _ = stateGlobal.updateUrl.value;
+      final card = buildHelpCards(_);
+      if (card is SizedBox || card is Offstage) {
+        return const SizedBox.shrink();
+      }
+      return card;
+    });
   }
 
   Widget _buildBlock({required Widget child}) {
