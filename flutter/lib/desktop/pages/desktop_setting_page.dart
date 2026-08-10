@@ -76,7 +76,8 @@ class DesktopSettingPage extends StatefulWidget {
     if (!bind.isIncomingOnly()) SettingsTabKey.display,
     if (!isWeb && !bind.isIncomingOnly() && bind.pluginFeatureIsEnabled())
       SettingsTabKey.plugin,
-    if (!bind.isDisableAccount()) SettingsTabKey.account,
+    if (!kUseRdClientHomeShell && !bind.isDisableAccount())
+      SettingsTabKey.account,
     SettingsTabKey.about,
   ];
 
