@@ -877,24 +877,69 @@ class AbModel {
 
   // Betterdesk/AB display name for Recent/Fav cards when local alias is empty.
   String getAliasForPeerId(String id) {
+    final normalized = id.replaceAll(' ', '');
     for (final ab in addressbooks.values) {
-      final peer = ab.peers.firstWhereOrNull((e) => e.id == id);
-      if (peer != null && peer.alias.isNotEmpty) {
-        return peer.alias;
+      final peer = ab.peers.firstWhereOrNull(
+          (e) => e.id == id || e.id.replaceAll(' ', '') == normalized);
+      if (peer != null) {
+        if (peer.alias.isNotEmpty) {
+          return peer.alias;
+        }
+        if (peer.note.isNotEmpty) {
+          return peer.note;
+        }
       }
     }
     return '';
   }
 
-  // Write AB aliases into local peer configs so Recent/Fav cards show them.
+  // Devices/group list often has Betterdesk note/alias when AB does not.
+  String getGroupDisplayNameForPeerId(String id) {
+    final normalized = id.replaceAll(' ', '');
+    final peer = gFFI.groupModel.peers.firstWhereOrNull(
+        (e) => e.id == id || e.id.replaceAll(' ', '') == normalized);
+    if (peer == null) {
+      return '';
+    }
+    if (peer.alias.isNotEmpty) {
+      return peer.alias;
+    }
+    if (peer.note.isNotEmpty) {
+      return peer.note;
+    }
+    return '';
+  }
+
+  String getDisplayNameForPeerId(String id) {
+    final ab = getAliasForPeerId(id);
+    if (ab.isNotEmpty) {
+      return ab;
+    }
+    return getGroupDisplayNameForPeerId(id);
+  }
+
+  // Write AB/Devices display names into local peer configs for Recent/Fav.
   Future<void> syncAliasesToLocalPeerConfigs() async {
     var synced = false;
+    final names = <String, String>{};
     for (final peer in allPeers()) {
-      if (peer.alias.isEmpty) continue;
+      final name = peer.alias.isNotEmpty ? peer.alias : peer.note;
+      if (name.isNotEmpty) {
+        names[peer.id] = name;
+      }
+    }
+    for (final peer in gFFI.groupModel.peers) {
+      if (names.containsKey(peer.id)) continue;
+      final name = peer.alias.isNotEmpty ? peer.alias : peer.note;
+      if (name.isNotEmpty) {
+        names[peer.id] = name;
+      }
+    }
+    for (final entry in names.entries) {
       try {
-        final local = bind.mainGetPeerOptionSync(id: peer.id, key: 'alias');
+        final local = bind.mainGetPeerOptionSync(id: entry.key, key: 'alias');
         if (local.isEmpty) {
-          await bind.mainSetPeerAlias(id: peer.id, alias: peer.alias);
+          await bind.mainSetPeerAlias(id: entry.key, alias: entry.value);
           synced = true;
         }
       } catch (_) {}

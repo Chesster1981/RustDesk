@@ -31,24 +31,24 @@ class Peer {
   }
 
   Peer.fromJson(Map<String, dynamic> json)
-      : id = json['id'] ?? '',
-        hash = json['hash'] ?? '',
+      : id = json['id']?.toString() ?? '',
+        hash = json['hash']?.toString() ?? '',
         // Betterdesk/legacy AB may store plaintext under password or info.password.
         password = _passwordFromJson(json),
-        username = json['username'] ?? '',
-        hostname = json['hostname'] ?? '',
-        platform = json['platform'] ?? '',
+        username = json['username']?.toString() ?? '',
+        hostname = json['hostname']?.toString() ?? '',
+        platform = json['platform']?.toString() ?? '',
         // Betterdesk may send display_name when alias is unset.
         alias = _stringOrEmpty(json['alias']).isNotEmpty
             ? _stringOrEmpty(json['alias'])
             : _stringOrEmpty(json['display_name']),
         tags = json['tags'] ?? [],
         forceAlwaysRelay = json['forceAlwaysRelay'] == 'true',
-        rdpPort = json['rdpPort'] ?? '',
-        rdpUsername = json['rdpUsername'] ?? '',
-        loginName = json['loginName'] ?? '',
-        device_group_name = json['device_group_name'] ?? '',
-        note = json['note'] is String ? json['note'] : '',
+        rdpPort = json['rdpPort']?.toString() ?? '',
+        rdpUsername = json['rdpUsername']?.toString() ?? '',
+        loginName = json['loginName']?.toString() ?? '',
+        device_group_name = json['device_group_name']?.toString() ?? '',
+        note = json['note'] is String ? json['note'] : (json['note']?.toString() ?? ''),
         sameServer = json['same_server'];
 
   static String _stringOrEmpty(dynamic value) {

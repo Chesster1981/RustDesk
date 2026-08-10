@@ -131,12 +131,12 @@ class _PeerCardState extends State<_PeerCard>
     return peerTabShowNote(widget.tab) && peer.note.isNotEmpty;
   }
 
-  // Betterdesk friendly name: local alias, AB alias/display name, note, hostname.
+  // Betterdesk friendly name: local alias, AB/Devices display name, note, hostname.
   String _resolvedAlias(Peer peer) {
     if (peer.alias.isNotEmpty) {
       return peer.alias;
     }
-    return gFFI.abModel.getAliasForPeerId(peer.id);
+    return gFFI.abModel.getDisplayNameForPeerId(peer.id);
   }
 
   String _peerCardPrimaryText(Peer peer) {

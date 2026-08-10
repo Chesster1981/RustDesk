@@ -98,6 +98,7 @@ class GroupModel {
         .toList();
     groupLoadError.value = '';
     _callbackPeerUpdate();
+    await gFFI.abModel.syncAliasesToLocalPeerConfigs();
   }
 
   Future<bool> _getDeviceGroups(
