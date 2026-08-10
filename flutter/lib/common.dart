@@ -183,10 +183,10 @@ class ColorThemeExtension extends ThemeExtension<ColorThemeExtension> {
   );
 
   static final dark = ColorThemeExtension(
-    border: Color(0xFF555555),
-    border2: Color(0xFFE5E5E5),
+    border: Color(0xFF30363D),
+    border2: Color(0xFFE6EDF3),
     border3: Colors.white24,
-    highlight: Color(0xFF3F3F3F),
+    highlight: Color(0xFF21262D),
     drag_indicator: Colors.grey,
     shadow: Colors.grey,
     errorBannerBg: Color(0xFF470F2D),
@@ -473,9 +473,9 @@ class MyTheme {
   static ThemeData darkTheme = ThemeData(
     useMaterial3: false,
     brightness: Brightness.dark,
-    hoverColor: Color.fromARGB(255, 45, 46, 53),
-    scaffoldBackgroundColor: Color(0xFF18191E),
-    dialogBackgroundColor: Color(0xFF18191E),
+    hoverColor: Color(0xFF21262D),
+    scaffoldBackgroundColor: Color(0xFF0D1117),
+    dialogBackgroundColor: Color(0xFF0D1117),
     appBarTheme: AppBarTheme(
       shadowColor: Colors.transparent,
     ),
@@ -485,14 +485,14 @@ class MyTheme {
         borderRadius: BorderRadius.circular(18.0),
         side: BorderSide(
           width: 1,
-          color: Color(0xFF24252B),
+          color: Color(0xFF30363D),
         ),
       ),
     ),
     scrollbarTheme: scrollbarThemeDark,
     inputDecorationTheme: (isDesktop || isWebDesktop)
         ? InputDecorationTheme(
-            fillColor: Color(0xFF24252B),
+            fillColor: Color(0xFF161B22),
             filled: true,
             isDense: true,
             border: OutlineInputBorder(
@@ -511,7 +511,7 @@ class MyTheme {
         color: accent80,
       ),
     ),
-    cardColor: Color(0xFF24252B),
+    cardColor: Color(0xFF161B22),
     visualDensity: VisualDensity.adaptivePlatformDensity,
     tabBarTheme: const TabBarTheme(
       labelColor: Colors.white70,
@@ -562,9 +562,9 @@ class MyTheme {
         style: MenuStyle(
             backgroundColor: MaterialStatePropertyAll(Color(0xFF121212)))),
     colorScheme: ColorScheme.dark(
-      primary: Colors.blue,
+      primary: Color(0xFF58A6FF),
       secondary: accent,
-      background: Color(0xFF24252B),
+      background: Color(0xFF161B22),
     ),
     popupMenuTheme: PopupMenuThemeData(
         shape: RoundedRectangleBorder(

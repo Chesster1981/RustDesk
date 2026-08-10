@@ -8,10 +8,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
 import 'package:flutter_hbb/common/widgets/custom_password.dart';
+import 'package:flutter_hbb/common/widgets/peer_tab_page.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
+import 'package:flutter_hbb/desktop/widgets/rd_home_header.dart';
+import 'package:flutter_hbb/desktop/widgets/rd_home_theme.dart';
+import 'package:flutter_hbb/desktop/widgets/rd_nav_sidebar.dart';
+import 'package:flutter_hbb/desktop/widgets/rd_quick_connect_bar.dart';
 import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/server_model.dart';
@@ -60,6 +65,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   Widget build(BuildContext context) {
     super.build(context);
     final isIncomingOnly = bind.isIncomingOnly();
+    if (kUseRdClientHomeShell) {
+      return _buildBlock(child: _buildRdClientShell(context));
+    }
     return _buildBlock(
         child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,6 +77,115 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         if (!isIncomingOnly) Expanded(child: buildRightPane(context)),
       ],
     ));
+  }
+
+  Widget _buildRdClientShell(BuildContext context) {
+    final isIncomingOnly = bind.isIncomingOnly();
+    final isOutgoingOnly = bind.isOutgoingOnly();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark
+        ? RdHomeTheme.bg
+        : Theme.of(context).scaffoldBackgroundColor;
+
+    Widget thisPcContent(BuildContext ctx) {
+      return ChangeNotifierProvider.value(
+        value: gFFI.serverModel,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            buildTip(ctx),
+            if (!isOutgoingOnly) buildIDBoard(ctx),
+            if (!isOutgoingOnly) buildPasswordBoard(ctx),
+            if (!bind.isDisableSettings())
+              ListTile(
+                dense: true,
+                leading: const Icon(Icons.settings, size: 18),
+                title: Text(translate('Settings'),
+                    style: const TextStyle(fontSize: 13)),
+                onTap: () {
+                  Navigator.maybePop(ctx);
+                  DesktopTabPage.onAddSetting();
+                },
+              ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      color: bg,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          RdHomeHeader(
+            showThisPc: !isOutgoingOnly,
+            thisPcBuilder: thisPcContent,
+            banner: _buildHelpBanner(context),
+          ),
+          if (!isIncomingOnly) const RdQuickConnectBar(),
+          if (!isIncomingOnly)
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const RdNavSidebar(),
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 16, bottom: 8),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? RdHomeTheme.surface
+                            : Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isDark
+                              ? RdHomeTheme.border
+                              : Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: ChangeNotifierProvider.value(
+                        value: gFFI.peerTabModel,
+                        child: const PeerTabPage(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: thisPcContent(context),
+              ),
+            ),
+          if (!isOutgoingOnly) const Divider(height: 1),
+          if (!isOutgoingOnly)
+            OnlineStatusWidget(
+              onSvcStatusChanged: () {
+                if (isIncomingOnly && isInHomePage()) {
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    _updateWindowSize();
+                  });
+                }
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHelpBanner(BuildContext context) {
+    return FutureBuilder<Widget>(
+      future: Future.value(
+          Obx(() => buildHelpCards(stateGlobal.updateUrl.value))),
+      builder: (_, data) {
+        if (!data.hasData) return const SizedBox.shrink();
+        return data.data!;
+      },
+    );
   }
 
   Widget _buildBlock({required Widget child}) {

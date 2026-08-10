@@ -108,10 +108,14 @@ class PeerTabModel with ChangeNotifier {
     } catch (e) {
       debugPrint("failed to get peer tab order list: $e");
     }
-    // init currentTab
-    _currentTab =
-        int.tryParse(bind.getLocalFlutterOption(k: kOptionPeerTabIndex)) ?? 0;
-    if (_currentTab < 0 || _currentTab >= maxTabCount) {
+    // Prefer Accessible devices when available (BetterDesk / ACL workflows).
+    final saved =
+        int.tryParse(bind.getLocalFlutterOption(k: kOptionPeerTabIndex));
+    if (saved != null && saved >= 0 && saved < maxTabCount) {
+      _currentTab = saved;
+    } else if (isEnabled[PeerTabIndex.group.index]) {
+      _currentTab = PeerTabIndex.group.index;
+    } else {
       _currentTab = 0;
     }
     _trySetCurrentTabToFirstVisibleEnabled();

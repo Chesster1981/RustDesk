@@ -73,6 +73,22 @@ class _AddressBookState extends State<AddressBook> {
       });
 
   Widget _buildAddressBookLandscape() {
+    if (kUseRdClientHomeShell) {
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+            child: Row(
+              children: [
+                Expanded(child: _buildAbDropdown()),
+                _buildAbPermission(),
+              ],
+            ),
+          ),
+          Expanded(child: _buildPeersViews()),
+        ],
+      );
+    }
     return Row(
       children: [
         Offstage(

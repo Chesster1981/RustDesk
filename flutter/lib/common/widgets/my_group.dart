@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common/hbbs/hbbs.dart';
 import 'package:flutter_hbb/common/widgets/login.dart';
 import 'package:flutter_hbb/common/widgets/peers_view.dart';
+import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
 
@@ -58,6 +59,13 @@ class _MyGroupState extends State<MyGroup> {
   }
 
   Widget _buildLandscape() {
+    if (kUseRdClientHomeShell) {
+      return Align(
+          alignment: Alignment.topLeft,
+          child: MyGroupPeerView(
+            menuPadding: widget.menuPadding,
+          ));
+    }
     return Row(
       children: [
         Container(

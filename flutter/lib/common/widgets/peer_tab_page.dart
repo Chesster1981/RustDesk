@@ -83,9 +83,15 @@ class _PeerTabPageState extends State<PeerTabPage>
           : int.parse(uiType) == 1
               ? PeerUiType.tile
               : PeerUiType.list;
+    } else if (kUseRdClientHomeShell && (isDesktop || isWebDesktop)) {
+      // RdClient device cards resemble the tile layout.
+      peerCardUiType.value = PeerUiType.tile;
     }
     hideAbTagsPanel.value =
         bind.mainGetLocalOption(key: kOptionHideAbTagsPanel) == 'Y';
+    if (kUseRdClientHomeShell && (isDesktop || isWebDesktop)) {
+      hideAbTagsPanel.value = true;
+    }
   }
 
   Future<void> handleTabSelection(int tabIndex) async {
@@ -114,13 +120,25 @@ class _PeerTabPageState extends State<PeerTabPage>
               child: Container(
                 padding: stateGlobal.isPortrait.isTrue
                     ? EdgeInsets.symmetric(horizontal: 2)
-                    : null,
+                    : const EdgeInsets.symmetric(horizontal: 8),
                 child: selectionWrap(Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(
-                        child: visibleContextMenuListener(
-                            _createSwitchBar(context))),
+                    if (!(kUseRdClientHomeShell &&
+                        (isDesktop || isWebDesktop)))
+                      Expanded(
+                          child: visibleContextMenuListener(
+                              _createSwitchBar(context)))
+                    else
+                      Expanded(
+                        child: Text(
+                          Provider.of<PeerTabModel>(context)
+                              .tabTooltip(Provider.of<PeerTabModel>(context)
+                                  .currentTab),
+                          style: Theme.of(context).textTheme.titleSmall,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     if (stateGlobal.isPortrait.isTrue)
                       ..._portraitRightActions(context)
                     else
@@ -563,11 +581,15 @@ class _PeerTabPageState extends State<PeerTabPage>
       ),
       _createPeerViewTypeSwitch(context),
       Offstage(
-        offstage: model.currentTab == PeerTabIndex.recent.index,
+        offstage: model.currentTab == PeerTabIndex.recent.index ||
+            (kUseRdClientHomeShell &&
+                model.currentTab == PeerTabIndex.ab.index),
         child: PeerSortDropdown(),
       ),
       Offstage(
-        offstage: model.currentTab != PeerTabIndex.ab.index,
+        // Tags live in RdNavSidebar when RdClient shell is active.
+        offstage: model.currentTab != PeerTabIndex.ab.index ||
+            kUseRdClientHomeShell,
         child: _toggleTags(),
       ),
     ];

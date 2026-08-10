@@ -198,6 +198,9 @@ class _PeerCardState extends State<_PeerCard>
         .textTheme
         .titleSmall
         ?.copyWith(fontWeight: FontWeight.bold);
+    final rdShell = kUseRdClientHomeShell && (isDesktop || isWebDesktop);
+    final leftW = isPortrait ? 50.0 : (rdShell ? 52.0 : 42.0);
+    final radius = rdShell ? 10.0 : _tileRadius;
 
     return Row(
       mainAxisSize: MainAxisSize.max,
@@ -206,14 +209,14 @@ class _PeerCardState extends State<_PeerCard>
             decoration: BoxDecoration(
               color: str2color('${peer.id}${peer.platform}', 0x7f),
               borderRadius: isPortrait
-                  ? BorderRadius.circular(_tileRadius)
+                  ? BorderRadius.circular(radius)
                   : BorderRadius.only(
-                      topLeft: Radius.circular(_tileRadius),
-                      bottomLeft: Radius.circular(_tileRadius),
+                      topLeft: Radius.circular(radius),
+                      bottomLeft: Radius.circular(radius),
                     ),
             ),
             alignment: Alignment.center,
-            width: isPortrait ? 50 : 42,
+            width: leftW,
             height: isPortrait ? 50 : null,
             child: Stack(
               children: [
@@ -232,8 +235,8 @@ class _PeerCardState extends State<_PeerCard>
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.background,
               borderRadius: BorderRadius.only(
-                topRight: Radius.circular(_tileRadius),
-                bottomRight: Radius.circular(_tileRadius),
+                topRight: Radius.circular(radius),
+                bottomRight: Radius.circular(radius),
               ),
             ),
             child: Row(
@@ -279,14 +282,10 @@ class _PeerCardState extends State<_PeerCard>
                                     style: isPortrait ? null : greyStyle,
                                     textAlign: TextAlign.start,
                                     overflow: TextOverflow.ellipsis,
-                                  ).marginOnly(
-                                      left: peerCardUiType.value ==
-                                              PeerUiType.list
-                                          ? 32
-                                          : 4),
+                                  ),
                                 ),
                               ),
-                            )
+                            ),
                         ],
                       ),
                     ],
@@ -1649,6 +1648,13 @@ void connectInPeerTab(BuildContext context, Peer peer, PeerTabIndex tab,
         password = abPassword;
         isSharedPassword = true;
       }
+    }
+  } else if (tab == PeerTabIndex.group) {
+    // BetterDesk Accessible devices: Access Policy password from /api/peers.
+    // Logged-in users already passed ACL; do not prompt when password is present.
+    if (peer.password.isNotEmpty) {
+      password = peer.password;
+      isSharedPassword = true;
     }
   }
   connect(context, peer.id,

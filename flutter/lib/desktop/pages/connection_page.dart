@@ -304,6 +304,8 @@ class _ConnectionPageState extends State<ConnectionPage>
   @override
   Widget build(BuildContext context) {
     final isOutgoingOnly = bind.isOutgoingOnly();
+    // When RdClient shell owns header/connect/footer, ConnectionPage is unused
+    // on the home path; keep classic layout for the legacy toggle.
     return Column(
       children: [
         Expanded(
