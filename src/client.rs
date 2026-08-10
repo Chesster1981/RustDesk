@@ -690,6 +690,11 @@ impl Client {
                 connect_timeout = MIN;
             }
         }
+        // Direct peer connect is not usable in our deployments; fail fast to relay.
+        const DIRECT_TO_RELAY_TIMEOUT: u64 = 3_000;
+        if connect_timeout > DIRECT_TO_RELAY_TIMEOUT {
+            connect_timeout = DIRECT_TO_RELAY_TIMEOUT;
+        }
         log::info!("peer address: {}, timeout: {}", peer, connect_timeout);
         let start = std::time::Instant::now();
 
