@@ -168,6 +168,12 @@ class UserModel {
   }
 
   Future<void> reset({bool resetOther = false}) async {
+    // Persist Betterdesk names onto Recent/Fav before AB/Devices are cleared.
+    if (resetOther) {
+      try {
+        await gFFI.abModel.syncAliasesToLocalPeerConfigs();
+      } catch (_) {}
+    }
     await bind.mainSetLocalOption(key: 'access_token', value: '');
     await bind.mainSetLocalOption(key: 'user_info', value: '');
     if (resetOther) {
@@ -201,6 +207,10 @@ class UserModel {
 
   Future<void> logOut({String? apiServer}) async {
     final tag = gFFI.dialogManager.showLoading(translate('Waiting'));
+    // Capture display names while AB/Devices are still loaded.
+    try {
+      await gFFI.abModel.syncAliasesToLocalPeerConfigs();
+    } catch (_) {}
     try {
       final url = apiServer ?? await bind.mainGetApiServer();
       final authHeaders = getHttpHeaders();

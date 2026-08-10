@@ -920,34 +920,41 @@ class AbModel {
 
   // Write AB/Devices display names into local peer configs for Recent/Fav.
   Future<void> syncAliasesToLocalPeerConfigs() async {
-    var synced = false;
     final names = <String, String>{};
+    void putName(String id, String name) {
+      if (name.isEmpty) return;
+      names[id.replaceAll(' ', '')] = name;
+    }
+
     for (final peer in allPeers()) {
-      final name = peer.alias.isNotEmpty ? peer.alias : peer.note;
-      if (name.isNotEmpty) {
-        names[peer.id] = name;
-      }
+      putName(peer.id, peer.alias.isNotEmpty ? peer.alias : peer.note);
     }
     for (final peer in gFFI.groupModel.peers) {
-      if (names.containsKey(peer.id)) continue;
-      final name = peer.alias.isNotEmpty ? peer.alias : peer.note;
-      if (name.isNotEmpty) {
-        names[peer.id] = name;
+      final key = peer.id.replaceAll(' ', '');
+      if (names.containsKey(key)) continue;
+      putName(peer.id, peer.alias.isNotEmpty ? peer.alias : peer.note);
+    }
+    if (names.isEmpty) {
+      return;
+    }
+
+    // Persist using the Recent/Fav peer id so PeerConfig paths match.
+    for (final model in [gFFI.recentPeersModel, gFFI.favoritePeersModel]) {
+      for (final peer in model.peers) {
+        final name = names[peer.id.replaceAll(' ', '')];
+        if (name == null || name.isEmpty) continue;
+        try {
+          final local = bind.mainGetPeerOptionSync(id: peer.id, key: 'alias');
+          if (local != name) {
+            await bind.mainSetPeerAlias(id: peer.id, alias: name);
+          }
+        } catch (_) {}
       }
     }
-    for (final entry in names.entries) {
-      try {
-        final local = bind.mainGetPeerOptionSync(id: entry.key, key: 'alias');
-        if (local.isEmpty) {
-          await bind.mainSetPeerAlias(id: entry.key, alias: entry.value);
-          synced = true;
-        }
-      } catch (_) {}
-    }
-    if (synced) {
-      bind.mainLoadRecentPeers();
-      bind.mainLoadFavPeers();
-    }
+
+    // Update cards immediately so logout does not flash hostname.
+    gFFI.recentPeersModel.applyAliases(names);
+    gFFI.favoritePeersModel.applyAliases(names);
   }
 
 // #endregion

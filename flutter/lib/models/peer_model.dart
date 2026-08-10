@@ -243,6 +243,23 @@ class Peers extends ChangeNotifier {
     return peers.length;
   }
 
+  // Keep Betterdesk display names on Recent/Fav cards after account logout.
+  void applyAliases(Map<String, String> normalizedIdToAlias) {
+    var changed = false;
+    for (final peer in peers) {
+      final name = normalizedIdToAlias[peer.id.replaceAll(' ', '')];
+      if (name == null || name.isEmpty || peer.alias == name) {
+        continue;
+      }
+      peer.alias = name;
+      changed = true;
+    }
+    if (changed) {
+      event = UpdateEvent.load;
+      notifyListeners();
+    }
+  }
+
   void _updateOnlineState(Map<String, dynamic> evt) {
     int changedCount = 0;
     evt['onlines'].split(',').forEach((online) {
