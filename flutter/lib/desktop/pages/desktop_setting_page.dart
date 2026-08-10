@@ -2459,23 +2459,19 @@ class _AboutState extends State<_About> {
     return futureBuilder(future: () async {
       final version = await bind.mainGetVersion();
       final buildDate = await bind.mainGetBuildDate();
-      final fingerprint = await bind.mainGetFingerprint();
-      final myId = await bind.mainGetMyId();
       return {
         'version': version,
         'buildDate': buildDate,
-        'fingerprint': fingerprint,
-        'myId': myId
       };
     }(), hasData: (data) {
       final version = data['version'].toString();
       final buildDate = data['buildDate'].toString();
-      final fingerprint = data['fingerprint'].toString();
-      final myId = data['myId'].toString();
       final scrollController = ScrollController();
       return SingleChildScrollView(
         controller: scrollController,
-        child: _Card(title: translate('About RustDesk'), children: [
+        child: _Card(
+            title: 'About DCS Norway Remote Desktop Client',
+            children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2483,17 +2479,10 @@ class _AboutState extends State<_About> {
                 height: 8.0,
               ),
               SelectionArea(
-                  child: Text('${translate('Version')}: $version')
+                  child: Text('Base version: RustDesk $version')
                       .marginSymmetric(vertical: 4.0)),
               SelectionArea(
                   child: Text('${translate('Build Date')}: $buildDate')
-                      .marginSymmetric(vertical: 4.0)),
-              if (!isWeb)
-                SelectionArea(
-                    child: Text('${translate('Fingerprint')}: $fingerprint')
-                        .marginSymmetric(vertical: 4.0)),
-              SelectionArea(
-                  child: Text('${translate('ID')}: $myId')
                       .marginSymmetric(vertical: 4.0)),
               Container(
                 decoration: const BoxDecoration(color: Color(0xFF2c8cff)),

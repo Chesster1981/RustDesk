@@ -37,21 +37,18 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
       width: 220,
       // Match account bar + devices panel: same top/bottom air and radius.
       margin: const EdgeInsets.fromLTRB(16, 10, 10, 16),
-      decoration: BoxDecoration(
-        color: RdHomeTheme.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: RdHomeTheme.border),
-      ),
+      decoration: RdHomeTheme.panel(context),
       child: Consumer<PeerTabModel>(
         builder: (context, model, _) {
           return ListView(
             padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
             children: [
               _section(
+                context,
                 title: translate('Groups'),
                 open: _groupsOpen,
                 onToggle: () => setState(() => _groupsOpen = !_groupsOpen),
-                child: _groupsBody(model),
+                child: _groupsBody(context, model),
               ),
             ],
           );
@@ -60,12 +57,14 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
     );
   }
 
-  Widget _section({
+  Widget _section(
+    BuildContext context, {
     required String title,
     required bool open,
     required VoidCallback onToggle,
     required Widget child,
   }) {
+    final muted = RdHomeTheme.textMutedOf(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -79,18 +78,18 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
                 Expanded(
                   child: Text(
                     title.toUpperCase(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.6,
-                      color: RdHomeTheme.textMuted,
+                      color: muted,
                     ),
                   ),
                 ),
                 Icon(
                   open ? Icons.expand_more : Icons.chevron_right,
                   size: 18,
-                  color: RdHomeTheme.textMuted,
+                  color: muted,
                 ),
               ],
             ),
@@ -101,9 +100,9 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
     );
   }
 
-  Widget _groupsBody(PeerTabModel model) {
+  Widget _groupsBody(BuildContext context, PeerTabModel model) {
     if (!model.isEnabled[PeerTabIndex.group.index]) {
-      return _emptyHint(translate('Disabled'));
+      return _emptyHint(context, translate('Disabled'));
     }
     return Obx(() {
       final loggedIn = gFFI.userModel.userName.value.isNotEmpty;
@@ -124,12 +123,13 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
       final onGroupTab = model.currentTab == PeerTabIndex.group.index;
 
       if (groups.isEmpty && users.isEmpty) {
-        return _emptyHint(translate('No groups'));
+        return _emptyHint(context, translate('No groups'));
       }
       return Column(
         children: [
           for (final g in groups)
             _navTile(
+              context,
               selected: onGroupTab && selectedIsDevice && selectedName == g.name,
               icon: IconFont.deviceGroupOutline,
               label: g.name,
@@ -145,6 +145,7 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
             ),
           for (final u in users)
             _navTile(
+              context,
               selected:
                   onGroupTab && !selectedIsDevice && selectedName == u.name,
               icon: Icons.person_outline,
@@ -164,21 +165,22 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
     });
   }
 
-  Widget _emptyHint(String text) {
+  Widget _emptyHint(BuildContext context, String text) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontStyle: FontStyle.italic,
-          color: RdHomeTheme.textMuted,
+          color: RdHomeTheme.textMutedOf(context),
         ),
       ),
     );
   }
 
-  Widget _navTile({
+  Widget _navTile(
+    BuildContext context, {
     required bool selected,
     required IconData icon,
     required String label,
@@ -186,6 +188,8 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
     int? count,
     Color? iconColor,
   }) {
+    final muted = RdHomeTheme.textMutedOf(context);
+    final primary = RdHomeTheme.textPrimaryOf(context);
     final selBg = RdHomeTheme.accent.withOpacity(0.15);
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
@@ -195,7 +199,7 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
           onTap: onTap,
-          hoverColor: RdHomeTheme.surface2,
+          hoverColor: RdHomeTheme.surface2Of(context),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Row(
@@ -203,7 +207,7 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
                 Icon(icon,
                     size: 18,
                     color: iconColor ??
-                        (selected ? RdHomeTheme.accent : RdHomeTheme.textMuted)),
+                        (selected ? RdHomeTheme.accent : muted)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -214,17 +218,14 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
                       fontSize: 13,
                       fontWeight:
                           selected ? FontWeight.w600 : FontWeight.w400,
-                      color: selected
-                          ? RdHomeTheme.accent
-                          : RdHomeTheme.textPrimary,
+                      color: selected ? RdHomeTheme.accent : primary,
                     ),
                   ),
                 ),
                 if (count != null)
                   Text(
                     '$count',
-                    style: const TextStyle(
-                        fontSize: 11, color: RdHomeTheme.textMuted),
+                    style: TextStyle(fontSize: 11, color: muted),
                   ),
               ],
             ),

@@ -15,12 +15,15 @@ class RdHomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final surface = RdHomeTheme.surfaceOf(context);
+    final border = RdHomeTheme.borderOf(context);
+    final textPrimary = RdHomeTheme.textPrimaryOf(context);
+    final textMuted = RdHomeTheme.textMutedOf(context);
+
     return Container(
-      decoration: const BoxDecoration(
-        color: RdHomeTheme.surface,
-        border: Border(
-          bottom: BorderSide(color: RdHomeTheme.border),
-        ),
+      decoration: BoxDecoration(
+        color: surface,
+        border: Border(bottom: BorderSide(color: border)),
       ),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
       child: Column(
@@ -30,7 +33,7 @@ class RdHomeHeader extends StatelessWidget {
             children: [
               _logo(),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -39,13 +42,12 @@ class RdHomeHeader extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: RdHomeTheme.textPrimary,
+                        color: textPrimary,
                       ),
                     ),
                     Text(
                       'Connect to your devices',
-                      style: TextStyle(
-                          fontSize: 12, color: RdHomeTheme.textMuted),
+                      style: TextStyle(fontSize: 12, color: textMuted),
                     ),
                   ],
                 ),
@@ -54,8 +56,8 @@ class RdHomeHeader extends StatelessWidget {
                 IconButton(
                   tooltip: translate('Settings'),
                   onPressed: () => DesktopTabPage.onAddSetting(),
-                  icon: const Icon(Icons.settings_outlined,
-                      color: RdHomeTheme.textMuted, size: 22),
+                  icon: Icon(Icons.settings_outlined,
+                      color: textMuted, size: 22),
                 ),
             ],
           ),

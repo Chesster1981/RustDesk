@@ -889,6 +889,7 @@ pub fn get_sysinfo() -> serde_json::Value {
         "memory": format!("{memory}GB"),
         "os": os,
         "hostname": hostname,
+        "app_name": get_app_name(),
     });
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {

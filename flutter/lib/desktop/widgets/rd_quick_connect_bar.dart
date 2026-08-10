@@ -92,22 +92,18 @@ class _RdQuickConnectBarState extends State<RdQuickConnectBar> {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: RdHomeTheme.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: RdHomeTheme.border),
-      ),
+      decoration: RdHomeTheme.panel(context),
       child: Row(
         children: [
-          const Icon(Icons.connected_tv,
-              size: 22, color: RdHomeTheme.textMuted),
+          Icon(Icons.connected_tv,
+              size: 22, color: RdHomeTheme.textMutedOf(context)),
           const SizedBox(width: 10),
           Text(
             translate('Control Remote Desktop'),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: RdHomeTheme.textMuted,
+              color: RdHomeTheme.textMutedOf(context),
             ),
           ),
           const SizedBox(width: 16),

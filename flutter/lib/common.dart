@@ -878,9 +878,7 @@ class OverlayDialogManager {
                     builder(setState, close, overlayState.context);
                 return Listener(
                   onPointerUp: (_) => innerClicked = true,
-                  child: kUseRdClientHomeShell
-                      ? Theme(data: MyTheme.darkTheme, child: dialogChild)
-                      : dialogChild,
+                  child: dialogChild,
                 );
               })));
     });

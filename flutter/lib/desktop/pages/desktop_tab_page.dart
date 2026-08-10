@@ -93,7 +93,7 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
   @override
   Widget build(BuildContext context) {
     final bg = kUseRdClientHomeShell
-        ? RdHomeTheme.bg
+        ? RdHomeTheme.bgOf(context)
         : Theme.of(context).colorScheme.background;
     final tabWidget = Container(
         child: Scaffold(
@@ -110,16 +110,13 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
                 ),
               ),
             )));
-    final themed = kUseRdClientHomeShell
-        ? Theme(data: MyTheme.darkTheme, child: tabWidget)
-        : tabWidget;
     return isMacOS || kUseCompatibleUiMode
-        ? themed
+        ? tabWidget
         : Obx(
             () => DragToResizeArea(
               resizeEdgeSize: stateGlobal.resizeEdgeSize.value,
               enableResizeEdges: windowManagerEnableResizeEdges,
-              child: themed,
+              child: tabWidget,
             ),
           );
   }

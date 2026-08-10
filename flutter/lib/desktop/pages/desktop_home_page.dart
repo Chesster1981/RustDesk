@@ -83,43 +83,37 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     final isIncomingOnly = bind.isIncomingOnly();
 
     // Pure connection client: no Your Desktop, no manual connect, no service footer.
-    return Theme(
-      data: MyTheme.darkTheme,
-      child: Container(
-        color: RdHomeTheme.bg,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            RdHomeHeader(banner: _buildHelpBanner(context)),
-            if (!isIncomingOnly) const RdAccountBar(),
-            if (!isIncomingOnly)
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const RdNavSidebar(),
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.fromLTRB(0, 10, 16, 16),
-                        decoration: BoxDecoration(
-                          color: RdHomeTheme.surface,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: RdHomeTheme.border),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: ChangeNotifierProvider.value(
-                          value: gFFI.peerTabModel,
-                          child: const PeerTabPage(),
-                        ),
+    // Follow Settings → Theme (light / dark / system); do not force darkTheme.
+    return Container(
+      color: RdHomeTheme.bgOf(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          RdHomeHeader(banner: _buildHelpBanner(context)),
+          if (!isIncomingOnly) const RdAccountBar(),
+          if (!isIncomingOnly)
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const RdNavSidebar(),
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(0, 10, 16, 16),
+                      decoration: RdHomeTheme.panel(context),
+                      clipBehavior: Clip.antiAlias,
+                      child: ChangeNotifierProvider.value(
+                        value: gFFI.peerTabModel,
+                        child: const PeerTabPage(),
                       ),
                     ),
-                  ],
-                ),
-              )
-            else
-              const Expanded(child: SizedBox.shrink()),
-          ],
-        ),
+                  ),
+                ],
+              ),
+            )
+          else
+            const Expanded(child: SizedBox.shrink()),
+        ],
       ),
     );
   }
