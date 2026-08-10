@@ -15,17 +15,14 @@ class RdHomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final surface = RdHomeTheme.surfaceOf(context);
-    final border = RdHomeTheme.borderOf(context);
     final textPrimary = RdHomeTheme.textPrimaryOf(context);
     final textMuted = RdHomeTheme.textMutedOf(context);
 
     return Container(
-      decoration: BoxDecoration(
-        color: surface,
-        border: Border(bottom: BorderSide(color: border)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      // Match account bar / devices panel: inset margins + rounded panel.
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: RdHomeTheme.panel(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -38,7 +35,7 @@ class RdHomeHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Remote Desktop Client',
+                      'DCS Norway Remote Desktop Client',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,

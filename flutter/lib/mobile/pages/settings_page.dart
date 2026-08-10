@@ -1022,8 +1022,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                 ),
                 leading: Icon(Icons.perm_identity)),
             SettingsTile(
-              title: Text(
-                  'This project is a modified fork of RustDesk for use by DCS Norway, by Chesster.'),
+              title: Text('Creator: Chesster'),
               leading: Icon(Icons.info_outline),
             )
           ],
@@ -1131,11 +1130,10 @@ void showThemeSettings(OverlayDialogManager dialogManager) async {
 void showAbout(OverlayDialogManager dialogManager) {
   dialogManager.show((setState, close, context) {
     return CustomAlertDialog(
-      title: Text(translate('About RustDesk')),
+      title: Text('About DCS Norway Remote Desktop Client'),
       content: Wrap(direction: Axis.vertical, spacing: 12, children: [
-        Text('Version: $version'),
-        Text(
-            'This project is a modified fork of RustDesk for use by DCS Norway, by Chesster.'),
+        Text('Base version: RustDesk $version'),
+        Text('Creator: Chesster'),
       ]),
       actions: [],
     );

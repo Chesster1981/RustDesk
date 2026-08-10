@@ -89,7 +89,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          RdHomeHeader(banner: _buildHelpBanner(context)),
+          RdHomeHeader(
+            // Pure connection client: no UAC / install / update help banners.
+            banner: null,
+          ),
           if (!isIncomingOnly) const RdAccountBar(),
           if (!isIncomingOnly)
             Expanded(
@@ -116,18 +119,6 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         ],
       ),
     );
-  }
-
-  Widget _buildHelpBanner(BuildContext context) {
-    // Avoid nested Obx-without-obs via FutureBuilder; read updateUrl in Obx.
-    return Obx(() {
-      final _ = stateGlobal.updateUrl.value;
-      final card = buildHelpCards(_);
-      if (card is SizedBox || card is Offstage) {
-        return const SizedBox.shrink();
-      }
-      return card;
-    });
   }
 
   Widget _buildBlock({required Widget child}) {
@@ -521,6 +512,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
 
     if (isWindows && !bind.isDisableInstallation()) {
       if (!bind.mainIsInstalled()) {
+        if (kUseRdClientHomeShell) {
+          // Pure client: never prompt to install as a host/service.
+          return const SizedBox.shrink();
+        }
         return buildInstallCard(
             "", bind.isOutgoingOnly() ? "" : "install_tip", "Install",
             () async {
