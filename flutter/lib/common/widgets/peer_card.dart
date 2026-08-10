@@ -131,19 +131,19 @@ class _PeerCardState extends State<_PeerCard>
     return peerTabShowNote(widget.tab) && peer.note.isNotEmpty;
   }
 
-  // Betterdesk display name first for DCS Norway address-book cards.
+  // Prefer Betterdesk display name (alias); never use computer hostname here.
   String _peerCardPrimaryText(Peer peer) {
     if (peer.alias.isNotEmpty) {
       return peer.alias;
     }
-    if (peer.hostname.isNotEmpty) {
-      return peer.hostname;
+    if (peer.note.isNotEmpty) {
+      return peer.note;
     }
     return formatID(peer.id);
   }
 
   String _peerCardSecondaryText(Peer peer, String name) {
-    if (peer.alias.isNotEmpty || peer.hostname.isNotEmpty) {
+    if (peer.alias.isNotEmpty || peer.note.isNotEmpty) {
       return formatID(peer.id);
     }
     return name;
@@ -393,8 +393,8 @@ class _PeerCardState extends State<_PeerCard>
                         Expanded(
                             child: Builder(builder: (context) {
                           final primary = _peerCardPrimaryText(peer);
-                          final showIdBelow = peer.alias.isNotEmpty ||
-                              peer.hostname.isNotEmpty;
+                          final showIdBelow =
+                              peer.alias.isNotEmpty || peer.note.isNotEmpty;
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [

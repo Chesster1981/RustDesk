@@ -469,12 +469,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           bind.mainGotoInstall();
         });
       } else if (bind.mainIsInstalledLowerVersion()) {
-        return buildInstallCard(
-            "Status", "Your installation is lower version.", "Click to upgrade",
-            () async {
-          await rustDeskWinManager.closeAllSubWindows();
-          bind.mainUpdateMe();
-        });
+        // Hidden for DCS Norway fork — upgrade prompt is not applicable.
+        return const SizedBox.shrink();
       }
     } else if (isMacOS) {
       final isOutgoingOnly = bind.isOutgoingOnly();

@@ -32,13 +32,7 @@ Widget getConnectionPageTitle(BuildContext context, bool isWeb) {
                   ?.color
                   ?.withOpacity(0.5),
             ),
-          ).marginOnly(left: 4, right: 8),
-          Image.asset(
-            'assets/dcs_norway_logo.png',
-            height: 36,
-            width: 36,
-            filterQuality: FilterQuality.medium,
-          ),
+          ).marginOnly(left: 4),
         ],
       )),
     ],

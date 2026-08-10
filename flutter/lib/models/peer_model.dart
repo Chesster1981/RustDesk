@@ -37,7 +37,10 @@ class Peer {
         username = json['username'] ?? '',
         hostname = json['hostname'] ?? '',
         platform = json['platform'] ?? '',
-        alias = json['alias'] ?? '',
+        // Betterdesk may send display_name when alias is unset.
+        alias = _stringOrEmpty(json['alias']).isNotEmpty
+            ? _stringOrEmpty(json['alias'])
+            : _stringOrEmpty(json['display_name']),
         tags = json['tags'] ?? [],
         forceAlwaysRelay = json['forceAlwaysRelay'] == 'true',
         rdpPort = json['rdpPort'] ?? '',
@@ -46,6 +49,13 @@ class Peer {
         device_group_name = json['device_group_name'] ?? '',
         note = json['note'] is String ? json['note'] : '',
         sameServer = json['same_server'];
+
+  static String _stringOrEmpty(dynamic value) {
+    if (value is String) {
+      return value;
+    }
+    return value?.toString() ?? '';
+  }
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{

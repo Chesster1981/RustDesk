@@ -310,8 +310,16 @@ class _ConnectionPageState extends State<ConnectionPage>
             child: Column(
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Flexible(child: _buildRemoteIDTextField(context)),
+                const Spacer(),
+                Image.asset(
+                  'assets/dcs_norway_logo.png',
+                  height: 120,
+                  width: 120,
+                  filterQuality: FilterQuality.medium,
+                ).marginOnly(right: 24, top: 8),
               ],
             ).marginOnly(top: 22),
             SizedBox(height: 12),
