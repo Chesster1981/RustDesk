@@ -86,7 +86,39 @@ class UserModel {
         reset(resetOther: status == 401);
         return;
       }
-      final data = json.decode(decode_http_response(response));
+      final raw = decode_http_response(response).trim();
+      // Empty/non-JSON bodies (some Betterdesk/proxy responses) must not
+      // surface as a blocking FormatException in the Devices tab.
+      if (raw.isEmpty) {
+        debugPrint(
+            'refreshCurrentUser: empty body (HTTP $status), keeping local user');
+        return;
+      }
+      final dynamic decoded;
+      try {
+        decoded = json.decode(raw);
+      } on FormatException catch (e) {
+        debugPrint('Failed to refreshCurrentUser: $e');
+        if (getLocalUserInfo() != null) {
+          return;
+        }
+        if (networkError.value.isEmpty) {
+          networkError.value = e.toString();
+        }
+        return;
+      }
+      if (decoded is! Map) {
+        debugPrint(
+            'refreshCurrentUser: unexpected JSON type ${decoded.runtimeType}');
+        if (getLocalUserInfo() != null) {
+          return;
+        }
+        if (networkError.value.isEmpty) {
+          networkError.value = 'Invalid currentUser response';
+        }
+        return;
+      }
+      final data = Map<String, dynamic>.from(decoded);
       final error = data['error'];
       if (error != null) {
         // The only failure known to come from the server itself, so the
