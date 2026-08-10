@@ -1023,10 +1023,9 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                 ),
                 leading: Icon(Icons.perm_identity)),
             SettingsTile(
-              title: Text(translate("Privacy Statement")),
-              onPressed: (context) =>
-                  launchUrlString('https://rustdesk.com/privacy.html'),
-              leading: Icon(Icons.privacy_tip),
+              title: Text(
+                  'This project is a modified fork of RustDesk for use by DCS Norway, by Chesster.'),
+              leading: Icon(Icons.info_outline),
             )
           ],
         ),
@@ -1136,18 +1135,8 @@ void showAbout(OverlayDialogManager dialogManager) {
       title: Text(translate('About RustDesk')),
       content: Wrap(direction: Axis.vertical, spacing: 12, children: [
         Text('Version: $version'),
-        InkWell(
-            onTap: () async {
-              const url = 'https://rustdesk.com/';
-              await launchUrl(Uri.parse(url));
-            },
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('rustdesk.com',
-                  style: TextStyle(
-                    decoration: TextDecoration.underline,
-                  )),
-            )),
+        Text(
+            'This project is a modified fork of RustDesk for use by DCS Norway, by Chesster.'),
       ]),
       actions: [],
     );
