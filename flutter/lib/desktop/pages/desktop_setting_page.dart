@@ -411,7 +411,8 @@ class _GeneralState extends State<_General> {
     return ListView(
       controller: scrollController,
       children: [
-        if (!isWeb) service(),
+        // Pure connection client: no local Service start/stop card.
+        if (!isWeb && !kUseRdClientHomeShell) service(),
         theme(),
         _Card(title: 'Language', children: [language()]),
         if (!isWeb) hwcodec(),

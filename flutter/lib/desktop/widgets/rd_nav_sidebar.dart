@@ -3,14 +3,12 @@ import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/login.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/widgets/rd_home_theme.dart';
-import 'package:flutter_hbb/models/ab_model.dart';
 import 'package:flutter_hbb/models/peer_tab_model.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 
-/// Unified Views / Groups / Tags sidebar for RdClient-style home.
-/// Always uses RdClient dark tokens; avoids empty Obx (GetX improper-use errors).
+/// Groups-only sidebar for pure Accessible-devices client.
 class RdNavSidebar extends StatefulWidget {
   const RdNavSidebar({Key? key}) : super(key: key);
 
@@ -19,21 +17,16 @@ class RdNavSidebar extends StatefulWidget {
 }
 
 class _RdNavSidebarState extends State<RdNavSidebar> {
-  bool _viewsOpen = true;
   bool _groupsOpen = true;
-  bool _tagsOpen = true;
 
-  Future<void> _selectView(int tabIndex) async {
+  Future<void> _ensureGroupTab() async {
     final model = gFFI.peerTabModel;
-    if (tabIndex != model.currentTab) {
+    final group = PeerTabIndex.group.index;
+    if (model.currentTab != group) {
       model.setCurrentTabCachedPeers([]);
-    }
-    model.setCurrentTab(tabIndex);
-    await bind.setLocalFlutterOption(
-        k: kOptionPeerTabIndex, v: tabIndex.toString());
-    if (tabIndex == PeerTabIndex.ab.index) {
-      gFFI.abModel.pullAb(force: ForcePullAb.listAndCurrent, quiet: false);
-    } else if (tabIndex == PeerTabIndex.group.index) {
+      model.setCurrentTab(group);
+      await bind.setLocalFlutterOption(
+          k: kOptionPeerTabIndex, v: group.toString());
       gFFI.groupModel.pull(force: true);
     }
   }
@@ -54,28 +47,10 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
             children: [
               _section(
-                title: translate('Views'),
-                open: _viewsOpen,
-                onToggle: () => setState(() => _viewsOpen = !_viewsOpen),
-                child: Column(
-                  children: model.visibleEnabledOrderedIndexs
-                      .map((t) => _viewItem(model, t))
-                      .toList(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              _section(
                 title: translate('Groups'),
                 open: _groupsOpen,
                 onToggle: () => setState(() => _groupsOpen = !_groupsOpen),
                 child: _groupsBody(model),
-              ),
-              const SizedBox(height: 8),
-              _section(
-                title: translate('Tags'),
-                open: _tagsOpen,
-                onToggle: () => setState(() => _tagsOpen = !_tagsOpen),
-                child: _tagsBody(model),
               ),
             ],
           );
@@ -125,20 +100,6 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
     );
   }
 
-  Widget _viewItem(PeerTabModel model, int tabIndex) {
-    final selected = model.currentTab == tabIndex;
-    final count = tabIndex == model.currentTab
-        ? model.currentTabCachedPeers.length
-        : null;
-    return _navTile(
-      selected: selected,
-      icon: model.tabIcon(tabIndex),
-      label: model.tabTooltip(tabIndex),
-      count: count,
-      onTap: () => _selectView(tabIndex),
-    );
-  }
-
   Widget _groupsBody(PeerTabModel model) {
     if (!model.isEnabled[PeerTabIndex.group.index]) {
       return _emptyHint(translate('Disabled'));
@@ -172,7 +133,7 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
               icon: IconFont.deviceGroupOutline,
               label: g.name,
               onTap: () async {
-                await _selectView(PeerTabIndex.group.index);
+                await _ensureGroupTab();
                 gFFI.groupModel.isSelectedDeviceGroup.value = true;
                 if (gFFI.groupModel.selectedAccessibleItemName.value == g.name) {
                   gFFI.groupModel.selectedAccessibleItemName.value = '';
@@ -188,48 +149,12 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
               icon: Icons.person_outline,
               label: u.displayNameOrName,
               onTap: () async {
-                await _selectView(PeerTabIndex.group.index);
+                await _ensureGroupTab();
                 gFFI.groupModel.isSelectedDeviceGroup.value = false;
                 if (gFFI.groupModel.selectedAccessibleItemName.value == u.name) {
                   gFFI.groupModel.selectedAccessibleItemName.value = '';
                 } else {
                   gFFI.groupModel.selectedAccessibleItemName.value = u.name;
-                }
-              },
-            ),
-        ],
-      );
-    });
-  }
-
-  Widget _tagsBody(PeerTabModel model) {
-    if (model.currentTab != PeerTabIndex.ab.index) {
-      return _emptyHint(
-          translate('Switch to Address book to filter tags'));
-    }
-    return Obx(() {
-      final loggedIn = gFFI.userModel.userName.value.isNotEmpty;
-      if (!loggedIn) {
-        return _emptyHint(translate('Login'));
-      }
-      final tags = List.of(gFFI.abModel.currentAbTags);
-      final selected = List.of(gFFI.abModel.selectedTags);
-      if (tags.isEmpty) {
-        return _emptyHint(translate('No tags'));
-      }
-      return Column(
-        children: [
-          for (final tag in tags)
-            _navTile(
-              selected: selected.contains(tag),
-              icon: Icons.label_outline,
-              iconColor: gFFI.abModel.getCurrentAbTagColor(tag),
-              label: tag,
-              onTap: () {
-                if (gFFI.abModel.selectedTags.contains(tag)) {
-                  gFFI.abModel.selectedTags.remove(tag);
-                } else {
-                  gFFI.abModel.selectedTags.add(tag);
                 }
               },
             ),

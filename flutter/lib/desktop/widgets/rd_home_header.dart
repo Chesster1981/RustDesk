@@ -4,17 +4,13 @@ import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/desktop/widgets/rd_home_theme.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 
-/// Top brand bar for the RdClient-style home shell (always dark).
+/// Top brand bar for pure connection-client home (no Your Desktop).
 class RdHomeHeader extends StatelessWidget {
   const RdHomeHeader({
     Key? key,
-    required this.showThisPc,
-    required this.thisPcBuilder,
     this.banner,
   }) : super(key: key);
 
-  final bool showThisPc;
-  final WidgetBuilder thisPcBuilder;
   final Widget? banner;
 
   @override
@@ -54,16 +50,13 @@ class RdHomeHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              if (showThisPc) _thisPcButton(context),
-              if (!bind.isDisableSettings()) ...[
-                const SizedBox(width: 6),
+              if (!bind.isDisableSettings())
                 IconButton(
                   tooltip: translate('Settings'),
                   onPressed: () => DesktopTabPage.onAddSetting(),
                   icon: const Icon(Icons.settings_outlined,
                       color: RdHomeTheme.textMuted, size: 22),
                 ),
-              ],
             ],
           ),
           if (banner != null) ...[
@@ -90,61 +83,8 @@ class RdHomeHeader extends StatelessWidget {
             color: RdHomeTheme.accentSolid,
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.desktop_windows,
-              color: Colors.white, size: 22),
-        ),
-      ),
-    );
-  }
-
-  Widget _thisPcButton(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: () {
-        showDialog(
-          context: context,
-          builder: (ctx) => Theme(
-            data: MyTheme.darkTheme,
-            child: Dialog(
-              backgroundColor: RdHomeTheme.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: RdHomeTheme.border),
-              ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 320),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
-                  child: thisPcBuilder(ctx),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: RdHomeTheme.surface2,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: RdHomeTheme.border),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.computer, size: 18, color: RdHomeTheme.accent),
-            const SizedBox(width: 8),
-            Text(
-              translate('Your Desktop'),
-              style: const TextStyle(
-                fontSize: 13,
-                color: RdHomeTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.expand_more,
-                size: 18, color: RdHomeTheme.textMuted),
-          ],
+          child:
+              const Icon(Icons.desktop_windows, color: Colors.white, size: 22),
         ),
       ),
     );

@@ -16,7 +16,6 @@ import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/desktop/widgets/rd_home_header.dart';
 import 'package:flutter_hbb/desktop/widgets/rd_home_theme.dart';
 import 'package:flutter_hbb/desktop/widgets/rd_nav_sidebar.dart';
-import 'package:flutter_hbb/desktop/widgets/rd_quick_connect_bar.dart';
 import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/server_model.dart';
@@ -81,37 +80,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
 
   Widget _buildRdClientShell(BuildContext context) {
     final isIncomingOnly = bind.isIncomingOnly();
-    final isOutgoingOnly = bind.isOutgoingOnly();
 
-    Widget thisPcContent(BuildContext ctx) {
-      return ChangeNotifierProvider.value(
-        value: gFFI.serverModel,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            buildTip(ctx),
-            if (!isOutgoingOnly) buildIDBoard(ctx),
-            if (!isOutgoingOnly) buildPasswordBoard(ctx),
-            if (!bind.isDisableSettings())
-              ListTile(
-                dense: true,
-                leading: const Icon(Icons.settings,
-                    size: 18, color: RdHomeTheme.textMuted),
-                title: Text(translate('Settings'),
-                    style: const TextStyle(
-                        fontSize: 13, color: RdHomeTheme.textPrimary)),
-                onTap: () {
-                  Navigator.maybePop(ctx);
-                  DesktopTabPage.onAddSetting();
-                },
-              ),
-          ],
-        ),
-      );
-    }
-
-    // Always dark — matches BetterDesk RdClient desktop chrome.
+    // Pure connection client: no Your Desktop, no manual connect, no service footer.
     return Theme(
       data: MyTheme.darkTheme,
       child: Container(
@@ -119,12 +89,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            RdHomeHeader(
-              showThisPc: !isOutgoingOnly,
-              thisPcBuilder: thisPcContent,
-              banner: _buildHelpBanner(context),
-            ),
-            if (!isIncomingOnly) const RdQuickConnectBar(),
+            RdHomeHeader(banner: _buildHelpBanner(context)),
             if (!isIncomingOnly)
               Expanded(
                 child: Row(
@@ -133,7 +98,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                     const RdNavSidebar(),
                     Expanded(
                       child: Container(
-                        margin: const EdgeInsets.only(right: 16, bottom: 8),
+                        margin: const EdgeInsets.fromLTRB(0, 10, 16, 16),
                         decoration: BoxDecoration(
                           color: RdHomeTheme.surface,
                           borderRadius: BorderRadius.circular(10),
@@ -150,27 +115,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 ),
               )
             else
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: thisPcContent(context),
-                ),
-              ),
-            if (!isOutgoingOnly)
-              const Divider(height: 1, color: RdHomeTheme.border),
-            if (!isOutgoingOnly)
-              ColoredBox(
-                color: RdHomeTheme.surface,
-                child: OnlineStatusWidget(
-                  onSvcStatusChanged: () {
-                    if (isIncomingOnly && isInHomePage()) {
-                      Future.delayed(const Duration(milliseconds: 300), () {
-                        _updateWindowSize();
-                      });
-                    }
-                  },
-                ),
-              ),
+              const Expanded(child: SizedBox.shrink()),
           ],
         ),
       ),
