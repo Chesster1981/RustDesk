@@ -35,7 +35,8 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
   Widget build(BuildContext context) {
     return Container(
       width: 220,
-      margin: const EdgeInsets.only(left: 16, right: 8, bottom: 8),
+      // Match account bar + devices panel: same top/bottom air and radius.
+      margin: const EdgeInsets.fromLTRB(16, 10, 10, 16),
       decoration: BoxDecoration(
         color: RdHomeTheme.surface,
         borderRadius: BorderRadius.circular(10),
@@ -44,7 +45,7 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
       child: Consumer<PeerTabModel>(
         builder: (context, model, _) {
           return ListView(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
             children: [
               _section(
                 title: translate('Groups'),
@@ -72,7 +73,7 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
           onTap: onToggle,
           borderRadius: BorderRadius.circular(6),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            padding: const EdgeInsets.fromLTRB(6, 4, 6, 10),
             child: Row(
               children: [
                 Expanded(
@@ -187,7 +188,7 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
   }) {
     final selBg = RdHomeTheme.accent.withOpacity(0.15);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Material(
         color: selected ? selBg : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
@@ -196,14 +197,14 @@ class _RdNavSidebarState extends State<RdNavSidebar> {
           onTap: onTap,
           hoverColor: RdHomeTheme.surface2,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Row(
               children: [
                 Icon(icon,
                     size: 18,
                     color: iconColor ??
                         (selected ? RdHomeTheme.accent : RdHomeTheme.textMuted)),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     label,
