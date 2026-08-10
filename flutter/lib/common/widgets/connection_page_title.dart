@@ -10,14 +10,16 @@ Widget getConnectionPageTitle(BuildContext context, bool isWeb) {
       Expanded(
           child: Row(
         children: [
-          AutoSizeText(
-            translate('Control Remote Desktop'),
-            maxLines: 1,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.merge(TextStyle(height: 1)),
-          ).marginOnly(right: 4),
+          Flexible(
+            child: AutoSizeText(
+              translate('Control Remote Desktop'),
+              maxLines: 1,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.merge(TextStyle(height: 1)),
+            ),
+          ),
           Tooltip(
             waitDuration: Duration(milliseconds: 300),
             message: translate(isWeb ? "web_id_input_tip" : "id_input_tip"),
@@ -30,6 +32,12 @@ Widget getConnectionPageTitle(BuildContext context, bool isWeb) {
                   ?.color
                   ?.withOpacity(0.5),
             ),
+          ).marginOnly(left: 4, right: 8),
+          Image.asset(
+            'assets/dcs_norway_logo.png',
+            height: 36,
+            width: 36,
+            filterQuality: FilterQuality.medium,
           ),
         ],
       )),

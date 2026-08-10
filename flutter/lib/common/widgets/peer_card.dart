@@ -131,6 +131,24 @@ class _PeerCardState extends State<_PeerCard>
     return peerTabShowNote(widget.tab) && peer.note.isNotEmpty;
   }
 
+  // Betterdesk display name first for DCS Norway address-book cards.
+  String _peerCardPrimaryText(Peer peer) {
+    if (peer.alias.isNotEmpty) {
+      return peer.alias;
+    }
+    if (peer.hostname.isNotEmpty) {
+      return peer.hostname;
+    }
+    return formatID(peer.id);
+  }
+
+  String _peerCardSecondaryText(Peer peer, String name) {
+    if (peer.alias.isNotEmpty || peer.hostname.isNotEmpty) {
+      return formatID(peer.id);
+    }
+    return name;
+  }
+
   makeChild(bool isPortrait, Peer peer) {
     final name = hideUsernameOnCard == true
         ? peer.hostname
@@ -139,6 +157,12 @@ class _PeerCardState extends State<_PeerCard>
         fontSize: 11,
         color: Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.6));
     final showNote = _showNote(peer);
+    final primaryText = _peerCardPrimaryText(peer);
+    final secondaryText = _peerCardSecondaryText(peer, name);
+    final primaryStyle = Theme.of(context)
+        .textTheme
+        .titleSmall
+        ?.copyWith(fontWeight: FontWeight.bold);
 
     return Row(
       mainAxisSize: MainAxisSize.max,
@@ -186,21 +210,21 @@ class _PeerCardState extends State<_PeerCard>
                         getOnline(isPortrait ? 4 : 8, peer.online),
                         Expanded(
                             child: Text(
-                          peer.alias.isEmpty ? formatID(peer.id) : peer.alias,
+                          primaryText,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleSmall,
+                          style: primaryStyle,
                         )),
                       ]).marginOnly(top: isPortrait ? 0 : 2),
                       Row(
                         children: [
                           Flexible(
                             child: Tooltip(
-                              message: name,
+                              message: secondaryText,
                               waitDuration: const Duration(seconds: 1),
                               child: Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  name,
+                                  secondaryText,
                                   style: isPortrait ? null : greyStyle,
                                   textAlign: TextAlign.start,
                                   overflow: TextOverflow.ellipsis,
@@ -367,11 +391,36 @@ class _PeerCardState extends State<_PeerCard>
                           child: Row(children: [
                         getOnline(8, peer.online),
                         Expanded(
-                            child: Text(
-                          peer.alias.isEmpty ? formatID(peer.id) : peer.alias,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleSmall,
-                        )),
+                            child: Builder(builder: (context) {
+                          final primary = _peerCardPrimaryText(peer);
+                          final showIdBelow = peer.alias.isNotEmpty ||
+                              peer.hostname.isNotEmpty;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                primary,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              if (showIdBelow)
+                                Text(
+                                  formatID(peer.id),
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.color
+                                          ?.withOpacity(0.6)),
+                                ),
+                            ],
+                          );
+                        })),
                       ]).paddingSymmetric(vertical: 8)),
                       checkBoxOrActionMoreLandscape(peer, isTile: false),
                     ],
