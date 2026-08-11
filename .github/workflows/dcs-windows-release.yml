@@ -56,7 +56,7 @@ jobs:
     with:
       upload-artifact: true
       upload-tag: ${{ needs.resolve-version.outputs.tag }}
-      release-version: ${{ needs.resolve-version.outputs.version }}
+      # release-version omitted: env.VERSION in flutter-build.yml must match the tag (1.4.10).
 
   publish-dcs-alias:
     name: Publish DCS-named installer alias

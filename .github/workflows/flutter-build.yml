@@ -9,11 +9,6 @@ on:
       upload-tag:
         type: string
         default: "nightly"
-      release-version:
-        type: string
-        description: "Override env.VERSION (asset filenames). Empty keeps default 1.4.10."
-        default: ""
-        required: false
 
 # NOTE: F-Droid builder script 'flutter/build_fdroid.sh' reads environment
 # variables from this workflow!
@@ -56,7 +51,6 @@ env:
   MACOS_P12_BASE64: "${{ secrets.MACOS_P12_BASE64 }}"
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}-2"
-  RELEASE_VERSION_OVERRIDE: "${{ inputs.release-version }}"
 
 jobs:
   generate-sbom:
@@ -69,11 +63,6 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           submodules: recursive
-
-      - name: Override VERSION from release-version input
-        if: ${{ inputs.release-version != '' }}
-        shell: bash
-        run: echo "VERSION=${{ inputs.release-version }}" >> "$GITHUB_ENV"
 
       - name: Install Syft
         uses: anchore/sbom-action/download-syft@v0
@@ -151,11 +140,6 @@ jobs:
           script: |
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
-      - name: Override VERSION from release-version input
-        if: ${{ inputs.release-version != '' }}
-        shell: bash
-        run: echo "VERSION=${{ inputs.release-version }}" >> "$GITHUB_ENV"
 
       - name: Checkout source code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
