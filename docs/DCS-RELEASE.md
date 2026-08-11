@@ -5,9 +5,10 @@ Operators get updates from **GitHub Releases** (pre-built `.exe`), not by compil
 ## Publish a new build
 
 1. Bump the version in source so clients detect “newer”:
-   - [`src/version.rs`](../src/version.rs) (`VERSION`)
    - [`Cargo.toml`](../Cargo.toml) / [`libs/portable/Cargo.toml`](../libs/portable/Cargo.toml)
-   - Default `VERSION` in [`.github/workflows/flutter-build.yml`](../.github/workflows/flutter-build.yml) (optional; tag override is preferred)
+   - Commit the updated [`Cargo.lock`](../Cargo.lock) (CI uses `cargo build --locked`)
+   - Default `VERSION` in [`.github/workflows/flutter-build.yml`](../.github/workflows/flutter-build.yml) (must match the release tag for asset names)
+   - [`flutter/pubspec.yaml`](../flutter/pubspec.yaml) version (optional consistency)
 2. Commit and push to the branding branch.
 3. Create and push a **tag** matching the version string used in asset names, e.g.:
    - `1.4.10`
