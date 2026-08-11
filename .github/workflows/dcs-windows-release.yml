@@ -58,8 +58,8 @@ jobs:
       upload-artifact: true
       upload-tag: ${{ needs.resolve-version.outputs.tag }}
       release-version: ${{ needs.resolve-version.outputs.version }}
-      # Avoid full OS matrix so Linux/Android/iOS failures cannot block DCS Windows assets.
-      windows-only: true
+      # Note: full flutter-build matrix runs; Windows x64 portable is the asset DCS needs.
+      # Prefer merging this workflow to the default branch so tag-push auto-triggers.
 
   publish-dcs-alias:
     name: Publish DCS-named installer alias

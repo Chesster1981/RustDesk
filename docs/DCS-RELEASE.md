@@ -19,7 +19,7 @@ Operators get updates from **GitHub Releases** (pre-built `.exe`), not by compil
      Or: `gh workflow run "DCS Windows Release" --ref <branding-branch> -f release_tag=1.4.10`
    - **Automatic on tag push** works only after this workflow file exists on the repo **default** branch (GitHub limitation).
 5. Wait for workflow **DCS Windows Release** (`.github/workflows/dcs-windows-release.yml`).
-   It builds **Windows x64 only** (`windows-only: true`) so other platforms cannot block the installer.
+   It reuses the Flutter tag build (Windows portable is the asset clients download).
 6. On the GitHub Release for that tag, confirm assets:
    - `rustdesk-{tag}-x86_64.exe` — used by in-app updater
    - `DCS-Norway-RDC-{version}-x86_64-install.exe` — human-friendly alias  
