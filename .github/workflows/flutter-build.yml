@@ -97,11 +97,10 @@ jobs:
           files: |
             rustdesk.sbom.json
 
-  # Emit Windows job matrices so windows-only DCS releases skip arm64 (no matrix in `if`).
+  # Emit Windows Flutter job matrix so windows-only DCS releases skip arm64.
   prepare-windows-matrix:
     runs-on: ubuntu-latest
     outputs:
-      topmost: ${{ steps.set.outputs.topmost }}
       flutter: ${{ steps.set.outputs.flutter }}
     steps:
       - id: set
@@ -109,23 +108,30 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ inputs.windows-only }}" = "true" ]; then
-            echo 'topmost=[{"target":"windows-2022","platform":"x64"}]' >> "$GITHUB_OUTPUT"
             echo 'flutter=[{"target":"x86_64-pc-windows-msvc","os":"windows-2022","arch":"x86_64","flutter-arch":"x64","vcpkg-triplet":"x64-windows-static","build-args":"--vram"}]' >> "$GITHUB_OUTPUT"
           else
-            echo 'topmost=[{"target":"windows-2022","platform":"x64"},{"target":"windows-11-arm","platform":"ARM64"}]' >> "$GITHUB_OUTPUT"
             echo 'flutter=[{"target":"x86_64-pc-windows-msvc","os":"windows-2022","arch":"x86_64","flutter-arch":"x64","vcpkg-triplet":"x64-windows-static","build-args":"--vram"},{"target":"aarch64-pc-windows-msvc","os":"windows-11-arm","arch":"aarch64","flutter-arch":"arm64","vcpkg-triplet":"arm64-windows-static","build-args":""}]' >> "$GITHUB_OUTPUT"
           fi
 
   generate-bridge:
     uses: ./.github/workflows/bridge.yml
 
+  # Full matrix (x64 + arm64). Skipped for DCS windows-only releases.
   build-RustDeskTempTopMostWindow:
-    needs: [prepare-windows-matrix]
+    if: ${{ !inputs.windows-only }}
     uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
     strategy:
       fail-fast: false
       matrix:
-        job: ${{ fromJSON(needs.prepare-windows-matrix.outputs.topmost) }}
+        job:
+          - {
+              target: windows-2022,
+              platform: x64,
+            }
+          - {
+              target: windows-11-arm,
+              platform: ARM64,
+            }
     with:
       upload-artifact: ${{ inputs.upload-artifact }}
       target: ${{ matrix.job.target }}
@@ -133,9 +139,33 @@ jobs:
       platform: ${{ matrix.job.platform }}
       target_version: Windows10
 
+  # DCS windows-only: single x64 helper (reusable workflows cannot use needs-based matrix).
+  build-RustDeskTempTopMostWindow-x64:
+    if: ${{ inputs.windows-only }}
+    uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
+    with:
+      upload-artifact: ${{ inputs.upload-artifact }}
+      target: windows-2022
+      configuration: Release
+      platform: x64
+      target_version: Windows10
+
   build-for-windows-flutter:
     name: ${{ matrix.job.target }}
-    needs: [prepare-windows-matrix, build-RustDeskTempTopMostWindow, generate-bridge]
+    needs:
+      [
+        prepare-windows-matrix,
+        generate-bridge,
+        build-RustDeskTempTopMostWindow,
+        build-RustDeskTempTopMostWindow-x64,
+      ]
+    # One of the TopMost jobs is always skipped; succeed if the active one + bridge are green.
+    if: >-
+      always() &&
+      needs.prepare-windows-matrix.result == 'success' &&
+      needs.generate-bridge.result == 'success' &&
+      (needs.build-RustDeskTempTopMostWindow.result == 'success' ||
+       needs.build-RustDeskTempTopMostWindow-x64.result == 'success')
     runs-on: ${{ matrix.job.os }}
     strategy:
       fail-fast: false
