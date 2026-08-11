@@ -1,5 +1,4 @@
 # DCS Norway Windows release — tag builds publish portable installer to GitHub Releases.
-# Clients check Chesster1981/RustDesk releases (not rustdesk.com).
 name: DCS Windows Release
 
 on:
@@ -36,7 +35,6 @@ jobs:
           set -euo pipefail
           TAG="${INPUT_TAG:-}"
           if [ -z "$TAG" ]; then
-            # Tag push: ref_name is the tag. Branch dispatch without input is invalid.
             if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
               TAG="${GITHUB_REF_NAME}"
             else
@@ -44,49 +42,12 @@ jobs:
               exit 1
             fi
           fi
-          # Asset filenames must use the same string as the release tag path segment
-          # (updater builds rustdesk-{tag}-x86_64.exe from the release page URL).
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "version=${TAG}" >> "$GITHUB_OUTPUT"
           echo "Release tag/version=${TAG}"
 
-  run-flutter-tag-build:
+  smoke:
     needs: resolve-version
-    uses: ./.github/workflows/flutter-build.yml
-    secrets: inherit
-    with:
-      upload-artifact: true
-      upload-tag: ${{ needs.resolve-version.outputs.tag }}
-      release-version: ${{ needs.resolve-version.outputs.version }}
-      # Note: full flutter-build matrix runs; Windows x64 portable is the asset DCS needs.
-      # Prefer merging this workflow to the default branch so tag-push auto-triggers.
-
-  publish-dcs-alias:
-    name: Publish DCS-named installer alias
-    needs: [resolve-version, run-flutter-tag-build]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - name: Download, alias, and publish
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.resolve-version.outputs.tag }}
-          VER: ${{ needs.resolve-version.outputs.version }}
-          REPO: ${{ github.repository }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          ASSET="rustdesk-${VER}-x86_64.exe"
-          mkdir -p ./out
-          gh release download "$TAG" --repo "$REPO" --pattern "$ASSET" --dir ./out
-          test -f "./out/$ASSET"
-          DISPLAY="${VER}"
-          DISPLAY="${DISPLAY#dcs-}"
-          DISPLAY="${DISPLAY#v}"
-          ALIAS="DCS-Norway-RDC-${DISPLAY}-x86_64-install.exe"
-          cp "./out/$ASSET" "./out/$ALIAS"
-          ls -la ./out
-          # Promote off prerelease and attach human-friendly alias.
-          gh release edit "$TAG" --repo "$REPO" --prerelease=false
-          gh release upload "$TAG" "./out/$ALIAS" --repo "$REPO" --clobber
+      - run: echo "tag=${{ needs.resolve-version.outputs.tag }} version=${{ needs.resolve-version.outputs.version }}"
