@@ -21,6 +21,11 @@ on:
       - 'dcs-v[0-9]+.[0-9]+.[0-9]+-[0-9]+'
       - 'dcs-[0-9]+.[0-9]+.[0-9]+-[0-9]+'
 
+# Reusable flutter-build.yml jobs (SBOM / softprops release) need contents:write.
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   resolve-version:
     runs-on: ubuntu-latest
@@ -51,12 +56,15 @@ jobs:
 
   run-flutter-tag-build:
     needs: resolve-version
+    permissions:
+      contents: write
+      actions: write
+      id-token: write
     uses: ./.github/workflows/flutter-build.yml
     secrets: inherit
     with:
       upload-artifact: true
       upload-tag: ${{ needs.resolve-version.outputs.tag }}
-      # release-version omitted: env.VERSION in flutter-build.yml must match the tag (1.4.10).
 
   publish-dcs-alias:
     name: Publish DCS-named installer alias
