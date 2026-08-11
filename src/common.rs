@@ -940,19 +940,64 @@ pub fn is_modifier(evt: &KeyEvent) -> bool {
 }
 
 pub fn check_software_update() {
-    if is_custom_client() {
-        return;
-    }
     let opt = LocalConfig::get_option(keys::OPTION_ENABLE_CHECK_UPDATE);
+    // Custom (DCS) clients always may check GitHub Releases when the option is on.
+    // Default for enable-check-update is Y unless user disabled it.
     if config::option2bool(keys::OPTION_ENABLE_CHECK_UPDATE, &opt) {
         std::thread::spawn(move || allow_err!(do_check_software_update()));
     }
 }
 
-// No need to check `danger_accept_invalid_cert` for now.
-// Because the url is always `https://api.rustdesk.com/version/latest`.
+// Stock RustDesk posts to api.rustdesk.com; DCS clients query GitHub Releases instead.
 #[tokio::main(flavor = "current_thread")]
 pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
+    if is_custom_client() {
+        return do_check_dcs_software_update().await;
+    }
+    do_check_stock_software_update().await
+}
+
+async fn do_check_dcs_software_update() -> hbb_common::ResultType<()> {
+    #[cfg(any(target_os = "android", target_os = "ios"))]
+    {
+        *SOFTWARE_UPDATE_URL.lock().unwrap() = "".to_string();
+        return Ok(());
+    }
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    {
+        match crate::dcs_update::check_dcs_github_update(crate::VERSION).await? {
+            Some(response_url) => {
+                #[cfg(feature = "flutter")]
+                {
+                    let mut m = HashMap::new();
+                    m.insert("name", "check_software_update_finish");
+                    m.insert("url", response_url.as_str());
+                    if let Ok(data) = serde_json::to_string(&m) {
+                        let _ =
+                            crate::flutter::push_global_event(crate::flutter::APP_TYPE_MAIN, data);
+                    }
+                }
+                *SOFTWARE_UPDATE_URL.lock().unwrap() = response_url;
+            }
+            None => {
+                *SOFTWARE_UPDATE_URL.lock().unwrap() = "".to_string();
+                #[cfg(feature = "flutter")]
+                {
+                    let mut m = HashMap::new();
+                    m.insert("name", "check_software_update_finish");
+                    m.insert("url", "");
+                    if let Ok(data) = serde_json::to_string(&m) {
+                        let _ =
+                            crate::flutter::push_global_event(crate::flutter::APP_TYPE_MAIN, data);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+async fn do_check_stock_software_update() -> hbb_common::ResultType<()> {
     let (request, url) =
         hbb_common::version_check_request(hbb_common::VER_TYPE_RUSTDESK_CLIENT.to_string());
     let proxy_conf = Config::get_socks();

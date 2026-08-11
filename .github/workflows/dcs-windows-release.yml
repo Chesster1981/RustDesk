@@ -1,0 +1,74 @@
+# DCS Norway Windows release — tag builds publish portable installer to GitHub Releases.
+# Clients check Chesster1981/RustDesk releases (not rustdesk.com).
+name: DCS Windows Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-[0-9]+'
+      - 'dcs-v[0-9]+.[0-9]+.[0-9]+'
+      - 'dcs-[0-9]+.[0-9]+.[0-9]+'
+      - 'dcs-v[0-9]+.[0-9]+.[0-9]+-[0-9]+'
+      - 'dcs-[0-9]+.[0-9]+.[0-9]+-[0-9]+'
+
+jobs:
+  resolve-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      tag: ${{ steps.ver.outputs.tag }}
+    steps:
+      - id: ver
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Asset filenames must use the same string as the release tag path segment
+          # (updater builds rustdesk-{tag}-x86_64.exe from the release page URL).
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Release tag/version=${TAG}"
+
+  run-flutter-tag-build:
+    needs: resolve-version
+    uses: ./.github/workflows/flutter-build.yml
+    secrets: inherit
+    with:
+      upload-artifact: true
+      upload-tag: ${{ needs.resolve-version.outputs.tag }}
+      release-version: ${{ needs.resolve-version.outputs.version }}
+      # Avoid full OS matrix so Linux/Android/iOS failures cannot block DCS Windows assets.
+      windows-only: true
+
+  publish-dcs-alias:
+    name: Publish DCS-named installer alias
+    needs: [resolve-version, run-flutter-tag-build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download, alias, and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.resolve-version.outputs.tag }}
+          VER: ${{ needs.resolve-version.outputs.version }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ASSET="rustdesk-${VER}-x86_64.exe"
+          mkdir -p ./out
+          gh release download "$TAG" --repo "$REPO" --pattern "$ASSET" --dir ./out
+          test -f "./out/$ASSET"
+          DISPLAY="${VER}"
+          DISPLAY="${DISPLAY#dcs-}"
+          DISPLAY="${DISPLAY#v}"
+          ALIAS="DCS-Norway-RDC-${DISPLAY}-x86_64-install.exe"
+          cp "./out/$ASSET" "./out/$ALIAS"
+          ls -la ./out
+          # Promote off prerelease and attach human-friendly alias.
+          gh release edit "$TAG" --repo "$REPO" --prerelease=false
+          gh release upload "$TAG" "./out/$ALIAS" --repo "$REPO" --clobber

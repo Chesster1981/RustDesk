@@ -374,13 +374,15 @@ pub fn get_update_download_file_from_url(url: &str) -> Option<PathBuf> {
     let download = segments.next()?;
     let tag = segments.next()?;
     let filename = segments.next()?;
+    let no_extra_segments = segments.next().is_none();
 
-    if owner != "rustdesk"
-        || repo != "rustdesk"
+    let stock_ok = owner == "rustdesk" && repo == "rustdesk";
+    let dcs_ok = crate::dcs_update::is_allowed_dcs_update_url(owner, repo);
+    if !(stock_ok || dcs_ok)
         || releases != "releases"
         || download != "download"
         || tag.is_empty()
-        || segments.next().is_some()
+        || !no_extra_segments
         || !is_plain_update_filename(filename)
     {
         return None;
@@ -668,6 +670,19 @@ mod tests {
         assert_eq!(
             file.file_name().and_then(|name| name.to_str()),
             Some("rustdesk-1.4.0-x86_64.dmg")
+        );
+    }
+
+    #[test]
+    fn update_download_file_accepts_dcs_fork_github_asset_urls() {
+        let file = get_download_file_from_url(
+            "https://github.com/Chesster1981/RustDesk/releases/download/1.4.10/rustdesk-1.4.10-x86_64.exe",
+        )
+        .expect("valid DCS GitHub release asset URL");
+
+        assert_eq!(
+            file.file_name().and_then(|name| name.to_str()),
+            Some("rustdesk-1.4.10-x86_64.exe")
         );
     }
 

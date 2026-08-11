@@ -89,10 +89,12 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          RdHomeHeader(
-            // Pure connection client: no UAC / install / update help banners.
-            banner: null,
-          ),
+          Obx(() {
+            final url = stateGlobal.updateUrl.value;
+            return RdHomeHeader(
+              banner: url.isEmpty ? null : buildHelpCards(url),
+            );
+          }),
           if (!isIncomingOnly) const RdAccountBar(),
           if (!isIncomingOnly)
             Expanded(
@@ -480,14 +482,16 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   Widget buildHelpCards(String updateUrl) {
-    if (!bind.isCustomClient() &&
-        updateUrl.isNotEmpty &&
+    // Stock RustDesk + DCS custom client: show update when a newer release URL is set.
+    if (updateUrl.isNotEmpty &&
         !isCardClosed &&
-        bind.mainUriPrefixSync().contains('rustdesk')) {
+        (bind.isCustomClient() ||
+            bind.mainUriPrefixSync().contains('rustdesk'))) {
       final isToUpdate = (isWindows || isMacOS) && bind.mainIsInstalled();
       String btnText = isToUpdate ? 'Update' : 'Download';
       GestureTapCallback onPressed = () async {
-        final Uri url = Uri.parse('https://rustdesk.com/download');
+        final Uri url = Uri.parse(
+            bind.isCustomClient() ? updateUrl : 'https://rustdesk.com/download');
         await launchUrl(url);
       };
       if (isToUpdate) {
@@ -495,6 +499,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           handleUpdate(updateUrl);
         };
       }
+      final changelogLink = bind.isCustomClient()
+          ? updateUrl
+          : 'https://github.com/rustdesk/rustdesk/releases/tag/${bind.mainGetNewVersion()}';
       return buildInstallCard(
           "Status",
           "${translate("new-version-of-{${bind.mainGetAppNameSync()}}-tip")} (${bind.mainGetNewVersion()}).",
@@ -502,9 +509,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           onPressed,
           closeButton: true,
           help: isToUpdate ? 'Changelog' : null,
-          link: isToUpdate
-              ? 'https://github.com/rustdesk/rustdesk/releases/tag/${bind.mainGetNewVersion()}'
-              : null);
+          link: isToUpdate ? changelogLink : null);
     }
     if (systemError.isNotEmpty) {
       return buildInstallCard("", systemError, "", () {});
