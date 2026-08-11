@@ -4,6 +4,12 @@ name: DCS Windows Release
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Git tag / asset version (e.g. 1.4.10). Required when not running from a tag ref."
+        required: false
+        type: string
+        default: ""
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
@@ -24,8 +30,20 @@ jobs:
     steps:
       - id: ver
         shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.release_tag }}
         run: |
-          TAG="${GITHUB_REF_NAME}"
+          set -euo pipefail
+          TAG="${INPUT_TAG:-}"
+          if [ -z "$TAG" ]; then
+            # Tag push: ref_name is the tag. Branch dispatch without input is invalid.
+            if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+              TAG="${GITHUB_REF_NAME}"
+            else
+              echo "::error::Set workflow_dispatch input release_tag (e.g. 1.4.10), or push a version tag."
+              exit 1
+            fi
+          fi
           # Asset filenames must use the same string as the release tag path segment
           # (updater builds rustdesk-{tag}-x86_64.exe from the release page URL).
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"

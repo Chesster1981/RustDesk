@@ -13,14 +13,19 @@ Operators get updates from **GitHub Releases** (pre-built `.exe`), not by compil
    - `1.4.10`
    - `1.4.9-2`  
    Prefer tags **without** a leading `v` so updater filenames stay simple (`rustdesk-1.4.10-x86_64.exe`).
-4. Wait for workflow **DCS Windows Release** (`.github/workflows/dcs-windows-release.yml`).
+4. Start the Windows build:
+   - **Preferred while the workflow lives only on the branding branch:**  
+     Actions → **DCS Windows Release** → Run workflow (branch = branding branch) → set `release_tag` to `1.4.10`.  
+     Or: `gh workflow run "DCS Windows Release" --ref <branding-branch> -f release_tag=1.4.10`
+   - **Automatic on tag push** works only after this workflow file exists on the repo **default** branch (GitHub limitation).
+5. Wait for workflow **DCS Windows Release** (`.github/workflows/dcs-windows-release.yml`).
    It builds **Windows x64 only** (`windows-only: true`) so other platforms cannot block the installer.
-5. On the GitHub Release for that tag, confirm assets:
+6. On the GitHub Release for that tag, confirm assets:
    - `rustdesk-{tag}-x86_64.exe` — used by in-app updater
    - `DCS-Norway-RDC-{version}-x86_64-install.exe` — human-friendly alias  
    Release is marked **non-prerelease** so clients can find it.
 
-Manual run: Actions → **DCS Windows Release** → Run workflow (from a tag ref), or push a tag.
+Manual run (same as step 4): Actions → **DCS Windows Release** → Run workflow.
 
 ## How clients update
 
