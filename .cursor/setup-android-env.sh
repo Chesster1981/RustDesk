@@ -22,6 +22,9 @@ install_apt_deps() {
 	sudo apt-get update -qq
 	sudo apt-get install -y -qq \
 		build-essential \
+		autoconf \
+		automake \
+		libtool \
 		clang \
 		cmake \
 		curl \
