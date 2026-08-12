@@ -30,7 +30,12 @@ Also install the **Flutter** and **Dart** plugins, and Flutter SDK **3.24.5**.
 
 ### 3. Build native libs (once / after Rust changes)
 
-From the repo root (requires Rust, `VCPKG_ROOT`, and NDK from Studio):
+From the repo root (requires Rust, `VCPKG_ROOT`, and NDK from Studio).
+
+**Important on Windows:** building `ffmpeg:x64-android` via vcpkg in Git Bash
+often fails. Use **WSL2 (Ubuntu)** for `prepare_android_studio.sh`, or build on
+Linux. Android Studio + the emulator can stay on Windows; only the native
+`vcpkg`/Rust step needs Linux.
 
 ```sh
 # Windows (Git Bash) — usual Android Studio SDK path:

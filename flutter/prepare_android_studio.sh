@@ -212,7 +212,22 @@ if [ "$SKIP_BRIDGE" != "1" ]; then
 			"$FLUTTER_DIR/pubspec.yaml.bak" > "$FLUTTER_DIR/pubspec.yaml"
 	fi
 	(cd "$FLUTTER_DIR" && flutter pub get)
-	(cd "$ROOT_DIR" && ~/.cargo/bin/flutter_rust_bridge_codegen \
+	BRIDGE_BIN="$(command -v flutter_rust_bridge_codegen || true)"
+	if [ -z "$BRIDGE_BIN" ]; then
+		for candidate in \
+			"$HOME/.cargo/bin/flutter_rust_bridge_codegen" \
+			/usr/local/cargo/bin/flutter_rust_bridge_codegen; do
+			if [ -x "$candidate" ]; then
+				BRIDGE_BIN="$candidate"
+				break
+			fi
+		done
+	fi
+	if [ -z "$BRIDGE_BIN" ]; then
+		echo "ERROR: flutter_rust_bridge_codegen not found on PATH" >&2
+		exit 1
+	fi
+	(cd "$ROOT_DIR" && "$BRIDGE_BIN" \
 		--rust-input ./src/flutter_ffi.rs \
 		--dart-output ./flutter/lib/generated_bridge.dart)
 fi
