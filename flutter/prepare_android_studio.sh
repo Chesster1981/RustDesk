@@ -262,13 +262,13 @@ cat <<EOF
 
 Native build ready for Android Studio.
 
-Next steps in Android Studio:
-  1. Install the Flutter and Dart plugins (if needed).
-  2. File → Open → select: $FLUTTER_DIR
-  3. Set Flutter SDK to: $FLUTTER_HOME
-     (Settings → Languages & Frameworks → Flutter)
-  4. Device Manager → create/start an AVD (x86_64 / Pixel recommended).
-  5. Click Run ▶️ on the flutter_hbb app.
+The emulator has no RustDesk until you install it. With the AVD running:
+
+  $FLUTTER_DIR/install_android_emulator.sh
+
+Or in Android Studio:
+  1. File → Open → $FLUTTER_DIR  (the flutter/ folder, not repo root)
+  2. Select the running AVD → Run ▶️ (flutter_hbb / main.dart)
 
 Re-run this script after Rust/FFI changes:
   $0 ${ABI_ARG}
