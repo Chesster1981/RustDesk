@@ -35,15 +35,16 @@ class RdHomeHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'DCS Norway Remote Desktop Client',
+                      'DCS Norway',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: textPrimary,
+                        height: 1.15,
                       ),
                     ),
                     Text(
-                      'Connect to your devices',
+                      'Remote Desktop Client',
                       style: TextStyle(fontSize: 12, color: textMuted),
                     ),
                   ],

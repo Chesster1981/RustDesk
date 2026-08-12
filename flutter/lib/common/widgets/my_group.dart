@@ -102,6 +102,13 @@ class _MyGroupState extends State<MyGroup> {
   }
 
   Widget _buildPortrait() {
+    if (kUseRdClientHomeShell) {
+      return Align(
+          alignment: Alignment.topLeft,
+          child: MyGroupPeerView(
+            menuPadding: widget.menuPadding,
+          ));
+    }
     return Column(
       children: [
         Container(

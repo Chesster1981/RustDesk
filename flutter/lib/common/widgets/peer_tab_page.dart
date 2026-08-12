@@ -124,8 +124,7 @@ class _PeerTabPageState extends State<PeerTabPage>
                 child: selectionWrap(Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    if (!(kUseRdClientHomeShell &&
-                        (isDesktop || isWebDesktop)))
+                    if (!kUseRdClientHomeShell)
                       Expanded(
                           child: visibleContextMenuListener(
                               _createSwitchBar(context)))

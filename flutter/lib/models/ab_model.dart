@@ -864,13 +864,21 @@ class AbModel {
     }
   }
 
-  // Prefer peer-level password from any AB; fall back to current shared-book default.
+  // Prefer peer-level password from any AB / Available devices; fall back to shared default.
   String? getPasswordForPeerId(String id) {
+    final normalized = id.replaceAll(' ', '');
     for (final ab in addressbooks.values) {
-      final peer = ab.peers.firstWhereOrNull((e) => e.id == id);
+      final peer = ab.peers.firstWhereOrNull(
+          (e) => e.id == id || e.id.replaceAll(' ', '') == normalized);
       if (peer != null && peer.password.isNotEmpty) {
         return peer.password;
       }
+    }
+    // Available devices (group/API peers) may carry password on the card.
+    final groupPeer = gFFI.groupModel.peers.firstWhereOrNull(
+        (e) => e.id == id || e.id.replaceAll(' ', '') == normalized);
+    if (groupPeer != null && groupPeer.password.isNotEmpty) {
+      return groupPeer.password;
     }
     return getdefaultSharedPassword();
   }

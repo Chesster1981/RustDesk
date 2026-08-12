@@ -28,7 +28,7 @@ class PeerTabModel with ChangeNotifier {
     'Favorites',
     'Discovered',
     'Address book',
-    'Accessible devices',
+    'Available devices',
   ];
   static const List<IconData> icons = [
     Icons.access_time_filled,
