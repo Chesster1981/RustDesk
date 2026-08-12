@@ -9,6 +9,7 @@ source "$ROOT/.cursor/env-android.sh"
 
 MODE="${MODE:-debug}"
 SKIP_NATIVE="${SKIP_NATIVE:-0}"
+SKIP_BRIDGE="${SKIP_BRIDGE:-0}"
 INSTALL="${INSTALL:-1}"
 
 cd "$ROOT"
@@ -20,6 +21,35 @@ fi
 if [[ -z "${VCPKG_ROOT:-}" || ! -x "$VCPKG_ROOT/vcpkg" ]]; then
 	echo "ERROR: VCPKG_ROOT not set or vcpkg missing" >&2
 	exit 1
+fi
+
+if [[ ! -f libs/hbb_common/Cargo.toml ]]; then
+	echo "==> git submodule update --init --recursive"
+	git submodule update --init --recursive
+fi
+
+ensure_bridge() {
+	if [[ -f src/bridge_generated.rs && -f flutter/lib/generated_bridge.dart ]]; then
+		echo "==> flutter_rust_bridge already generated"
+		return 0
+	fi
+	echo "==> generating flutter_rust_bridge"
+	cargo install cargo-expand --version 1.0.95 --locked
+	cargo install flutter_rust_bridge_codegen --version 1.80.1 --features uuid --locked
+	(
+		cd flutter
+		flutter pub get
+	)
+	mkdir -p flutter/macos/Runner flutter/ios/Runner
+	flutter_rust_bridge_codegen \
+		--rust-input ./src/flutter_ffi.rs \
+		--dart-output ./flutter/lib/generated_bridge.dart \
+		--c-output ./flutter/macos/Runner/bridge_generated.h
+	cp ./flutter/macos/Runner/bridge_generated.h ./flutter/ios/Runner/bridge_generated.h
+}
+
+if [[ "$SKIP_BRIDGE" != "1" ]]; then
+	ensure_bridge
 fi
 
 if [[ "$SKIP_NATIVE" != "1" ]]; then
