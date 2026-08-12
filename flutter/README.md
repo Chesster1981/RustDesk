@@ -52,10 +52,28 @@ Optional helper if Flutter is not installed yet:
 source ~/android-dev/env.sh
 ```
 
-### 4. Open and Run
+### 4. Install / Run on the emulator
 
-1. Android Studio → **File → Open** → select the `flutter/` directory  
+The emulator does **not** ship with RustDesk. You must install the app once
+the native libs from step 3 exist.
+
+**Option A — from terminal (with emulator already running):**
+
+```sh
+./flutter/install_android_emulator.sh
+```
+
+This builds a debug x86_64 APK, `adb install`s it, and launches
+`com.carriez.flutter_hbb`.
+
+**Option B — from Android Studio:**
+
+1. **File → Open** → select the `flutter/` directory (not the repo root)  
 2. Set Flutter SDK path under **Settings → Flutter**  
-3. Select your AVD → **Run** ▶️ (`com.carriez.flutter_hbb`)
+3. Select your running AVD in the device dropdown  
+4. Click **Run** ▶️ — look for configuration `flutter_hbb` / main.dart  
 
-After changing Rust or FFI code, re-run `prepare_android_studio.sh` before Run.
+The app icon is **RustDesk** (package `com.carriez.flutter_hbb`).
+
+After changing Rust or FFI code, re-run `prepare_android_studio.sh`, then
+install/Run again.
