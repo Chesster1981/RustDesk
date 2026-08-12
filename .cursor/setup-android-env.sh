@@ -30,6 +30,9 @@ install_apt_deps() {
 		curl \
 		git \
 		g++ \
+		gcc-multilib \
+		g++-multilib \
+		libc6-dev \
 		libstdc++-13-dev \
 		libstdc++-14-dev \
 		libclang-dev \
