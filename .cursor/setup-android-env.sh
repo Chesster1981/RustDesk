@@ -108,24 +108,55 @@ install_android_sdk() {
 create_avd() {
 	if avdmanager list avd 2>/dev/null | grep -q "Name: $ANDROID_AVD_NAME"; then
 		log "AVD $ANDROID_AVD_NAME already exists"
-		return 0
+	else
+		log "Creating AVD $ANDROID_AVD_NAME"
+		echo no | avdmanager create avd \
+			--name "$ANDROID_AVD_NAME" \
+			--package "system-images;android-34;google_apis;x86_64" \
+			--device "pixel_6" \
+			--force
 	fi
-	log "Creating AVD $ANDROID_AVD_NAME"
-	echo no | avdmanager create avd \
-		--name "$ANDROID_AVD_NAME" \
-		--package "system-images;android-34;google_apis;x86_64" \
-		--device "pixel_6" \
-		--force
 
-	# Headless / CI-friendly defaults
+	# Cloud VMs: nested KVM often hangs the guest; scripts default to -accel off.
+	# Cold-boot flags avoid stuck downloadable-snapshot first boots.
 	local cfg="$HOME/.android/avd/${ANDROID_AVD_NAME}.avd/config.ini"
 	if [[ -f "$cfg" ]]; then
-		{
-			echo "hw.keyboard=yes"
-			echo "hw.gpu.enabled=yes"
-			echo "hw.gpu.mode=auto"
-			echo "disk.dataPartition.size=4G"
-		} >>"$cfg"
+		python3 - "$cfg" <<'PY'
+import sys
+from pathlib import Path
+cfg = Path(sys.argv[1])
+overrides = {
+    "hw.keyboard": "yes",
+    "hw.gpu.enabled": "yes",
+    "hw.gpu.mode": "swiftshader_indirect",
+    "hw.ramSize": "3072",
+    "hw.cpu.ncore": "4",
+    "disk.dataPartition.size": "4G",
+    "disk.dataPartition.path": "userdata-qemu.img",
+    "fastboot.forceColdBoot": "yes",
+    "fastboot.forceFastBoot": "no",
+    "firstboot.bootFromDownloadableSnapshot": "no",
+    "firstboot.bootFromLocalSnapshot": "no",
+    "firstboot.saveToLocalSnapshot": "no",
+}
+lines, seen = [], set()
+for line in cfg.read_text().splitlines():
+    if "=" not in line:
+        lines.append(line)
+        continue
+    key = line.split("=", 1)[0].strip()
+    if key in overrides:
+        if key in seen:
+            continue
+        lines.append(f"{key} = {overrides[key]}")
+        seen.add(key)
+    else:
+        lines.append(line)
+for key, value in overrides.items():
+    if key not in seen:
+        lines.append(f"{key} = {value}")
+cfg.write_text("\n".join(lines) + "\n")
+PY
 	fi
 }
 

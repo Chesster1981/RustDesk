@@ -107,7 +107,9 @@ Then translate that source into the file's target language (infer the language f
 
 ## Android testing (Cursor cloud)
 
-Cloud agents cannot use a host machine's Android Studio AVD. This repo's Cursor environment installs an in-VM Android SDK, NDK r28c, Flutter 3.24.5, and an x86_64 AVD named `rustdesk_api34`.
+Cloud agents cannot attach to a host machine's Android Studio AVD. This repo's Cursor environment installs an in-VM Android SDK, NDK r28c, Flutter 3.24.5, and an x86_64 AVD named `rustdesk_api34`.
+
+Your local Android Studio AVD is still useful for interactive UI work on your machine; cloud agents build/install against the in-VM emulator (or produce an APK you sideload locally).
 
 ### Setup
 
@@ -118,7 +120,13 @@ Cloud agents cannot use a host machine's Android Studio AVD. This repo's Cursor 
 
 1. Start emulator: `./scripts/android/start-emulator.sh`
 2. Build + install x86_64 APK: `./scripts/android/build-and-install-x86_64.sh`
-3. Inspect with `adb logcat`, `adb shell`, or the computerUse agent against the emulator UI when a windowed display is available.
+3. Inspect with `adb logcat`, `adb shell`, or the computerUse agent against the emulator UI when `DISPLAY` is set.
+
+### Emulator notes
+
+* Nested KVM often hangs the guest in cloud VMs. `start-emulator.sh` defaults to `-accel off` (software). Override with `ANDROID_EMULATOR_ACCEL=on` only if KVM is known-good.
+* First software boot can take several minutes; default wait is 600s (`ANDROID_EMULATOR_BOOT_TIMEOUT`).
+* When `DISPLAY` is set (Cursor VNC desktop), the emulator window is shown; otherwise `-no-window` is used.
 
 Native Rust + vcpkg Android deps are large; first `build-and-install-x86_64.sh` run is slow. Use `SKIP_NATIVE=1` only when `jniLibs/x86_64` is already populated.
 
