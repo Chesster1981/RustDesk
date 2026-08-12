@@ -13,7 +13,15 @@ detect_android_sdk() {
 		echo "$ANDROID_HOME"
 		return
 	fi
-	for candidate in "$HOME/Android/Sdk" "$HOME/Library/Android/sdk"; do
+	local win_local="${LOCALAPPDATA:-}"
+	win_local="${win_local//\\//}"
+	for candidate in \
+		"${win_local:+$win_local/Android/Sdk}" \
+		"$HOME/AppData/Local/Android/Sdk" \
+		"/c/Users/${USER:-$USERNAME}/AppData/Local/Android/Sdk" \
+		"$HOME/Android/Sdk" \
+		"$HOME/Library/Android/sdk"; do
+		[ -n "$candidate" ] || continue
 		if [ -d "$candidate" ]; then
 			echo "$candidate"
 			return
@@ -23,7 +31,14 @@ detect_android_sdk() {
 }
 
 if ! ANDROID_HOME="$(detect_android_sdk)"; then
-	echo "ERROR: ANDROID_HOME not found (set it to your Android Studio SDK path)" >&2
+	cat >&2 <<'EOF'
+ERROR: ANDROID_HOME not found.
+
+On Windows (Git Bash), typically:
+  export ANDROID_HOME="$LOCALAPPDATA/Android/Sdk"
+  # or:
+  export ANDROID_HOME="/c/Users/$USER/AppData/Local/Android/Sdk"
+EOF
 	exit 1
 fi
 export ANDROID_HOME ANDROID_SDK_ROOT="$ANDROID_HOME"

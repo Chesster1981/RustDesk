@@ -33,7 +33,14 @@ Also install the **Flutter** and **Dart** plugins, and Flutter SDK **3.24.5**.
 From the repo root (requires Rust, `VCPKG_ROOT`, and NDK from Studio):
 
 ```sh
-export ANDROID_HOME="$HOME/Android/Sdk"   # or path from Studio
+# Windows (Git Bash) — usual Android Studio SDK path:
+export ANDROID_HOME="$LOCALAPPDATA/Android/Sdk"
+# If that fails, use the path from Studio → Settings → Android SDK:
+# export ANDROID_HOME="/c/Users/Ole/AppData/Local/Android/Sdk"
+
+# Linux/macOS:
+# export ANDROID_HOME="$HOME/Android/Sdk"
+
 export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/28.2.13676358"
 export VCPKG_ROOT="$HOME/vcpkg"           # bootstrap if needed
 
@@ -41,6 +48,10 @@ export VCPKG_ROOT="$HOME/vcpkg"           # bootstrap if needed
 # ./flutter/prepare_android_studio.sh arm64-v8a  # physical device
 # ./flutter/prepare_android_studio.sh all
 ```
+
+If you still get **Android SDK not found**, open Android Studio →
+Settings → Android SDK, copy **Android SDK Location**, and `export ANDROID_HOME=...`
+(use Git Bash form like `/c/Users/.../AppData/Local/Android/Sdk`).
 
 This writes `flutter/android/local.properties`, builds `jniLibs/`, and generates
 the Flutter Rust bridge.

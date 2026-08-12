@@ -18,6 +18,20 @@ VCPKG_COMMIT_ID="${VCPKG_COMMIT_ID:-120deac3062162151622ca4860575a33844ba10b}"
 SKIP_DEPS="${SKIP_DEPS:-0}"
 SKIP_BRIDGE="${SKIP_BRIDGE:-0}"
 
+# Convert Git Bash /c/Users/... paths to C:/Users/... for Gradle local.properties.
+to_gradle_path() {
+	local p="$1"
+	# C:\Users\... → C:/Users/...
+	p="${p//\\//}"
+	if [[ "$p" =~ ^/([a-zA-Z])/(.*)$ ]]; then
+		local drive
+		drive="$(echo "${BASH_REMATCH[1]}" | tr '[:lower:]' '[:upper:]')"
+		echo "${drive}:/${BASH_REMATCH[2]}"
+		return
+	fi
+	echo "$p"
+}
+
 detect_android_sdk() {
 	if [ -n "${ANDROID_HOME:-}" ] && [ -d "$ANDROID_HOME" ]; then
 		echo "$ANDROID_HOME"
@@ -27,12 +41,18 @@ detect_android_sdk() {
 		echo "$ANDROID_SDK_ROOT"
 		return
 	fi
-	# Default Android Studio locations
+	# Default Android Studio locations (Linux / macOS / Windows Git Bash)
+	local win_local="${LOCALAPPDATA:-}"
+	win_local="${win_local//\\//}"
 	for candidate in \
+		"${win_local:+$win_local/Android/Sdk}" \
+		"$HOME/AppData/Local/Android/Sdk" \
+		"/c/Users/${USER:-$USERNAME}/AppData/Local/Android/Sdk" \
 		"$HOME/Android/Sdk" \
 		"$HOME/Library/Android/sdk" \
 		"/usr/local/lib/android/sdk" \
 		"$HOME/android-dev/Android/Sdk"; do
+		[ -n "$candidate" ] || continue
 		if [ -d "$candidate" ]; then
 			echo "$candidate"
 			return
@@ -77,8 +97,10 @@ detect_flutter() {
 		"$HOME/flutter" \
 		"$HOME/development/flutter" \
 		"$HOME/snap/flutter/common/flutter" \
-		"$HOME/android-dev/flutter"; do
-		if [ -x "$candidate/bin/flutter" ]; then
+		"$HOME/android-dev/flutter" \
+		"/c/flutter" \
+		"$HOME/Documents/flutter"; do
+		if [ -x "$candidate/bin/flutter" ] || [ -f "$candidate/bin/flutter" ] || [ -f "$candidate/bin/flutter.bat" ]; then
 			echo "$candidate"
 			return
 		fi
@@ -92,9 +114,14 @@ ERROR: Android SDK not found.
 
 In Android Studio:
   Settings → Languages & Frameworks → Android SDK
-  note the "Android SDK Location", then:
+  note the "Android SDK Location", then in Git Bash:
 
-  export ANDROID_HOME="/path/from/studio"
+  # typical Windows Studio path:
+  export ANDROID_HOME="$LOCALAPPDATA/Android/Sdk"
+  # or, if that is empty:
+  export ANDROID_HOME="/c/Users/$USER/AppData/Local/Android/Sdk"
+
+Then re-run this script.
 EOF
 	exit 1
 fi
@@ -151,12 +178,15 @@ echo "ABIs: ${ABIS[*]}"
 
 # local.properties for Gradle / Android Studio
 LOCAL_PROPS="$FLUTTER_DIR/android/local.properties"
+SDK_GRADLE="$(to_gradle_path "$ANDROID_HOME")"
+FLUTTER_GRADLE="$(to_gradle_path "$FLUTTER_HOME")"
+NDK_GRADLE="$(to_gradle_path "$ANDROID_NDK_HOME")"
 {
-	echo "sdk.dir=${ANDROID_HOME//\\/\\\\}"
-	echo "flutter.sdk=${FLUTTER_HOME}"
+	echo "sdk.dir=${SDK_GRADLE}"
+	echo "flutter.sdk=${FLUTTER_GRADLE}"
 	echo "flutter.versionName=1.4.9"
 	echo "flutter.versionCode=67"
-	echo "ndk.dir=${ANDROID_NDK_HOME}"
+	echo "ndk.dir=${NDK_GRADLE}"
 } >"$LOCAL_PROPS"
 echo "==> Wrote $LOCAL_PROPS"
 
@@ -229,8 +259,11 @@ ndk_host_tag() {
 			echo darwin-x86_64
 		fi
 		;;
+	MINGW*|MSYS*|CYGWIN*)
+		echo windows-x86_64
+		;;
 	*)
-		echo "ERROR: unsupported host $(uname -s) — build native libs on Linux/macOS" >&2
+		echo "ERROR: unsupported host $(uname -s)" >&2
 		exit 1
 		;;
 	esac
