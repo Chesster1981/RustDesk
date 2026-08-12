@@ -21,11 +21,14 @@ install_apt_deps() {
 	export DEBIAN_FRONTEND=noninteractive
 	sudo apt-get update -qq
 	sudo apt-get install -y -qq \
+		build-essential \
 		clang \
 		cmake \
 		curl \
 		git \
 		g++ \
+		libstdc++-13-dev \
+		libstdc++-14-dev \
 		libclang-dev \
 		libssl-dev \
 		libunwind-dev \
