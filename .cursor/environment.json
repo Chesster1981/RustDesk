@@ -1,0 +1,4 @@
+{
+  "install": "bash .cursor/setup-android-env.sh",
+  "start": "bash -lc 'if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm || true; fi; [ -f \"$HOME/.cursor-android-env.sh\" ] && . \"$HOME/.cursor-android-env.sh\"; true'"
+}
