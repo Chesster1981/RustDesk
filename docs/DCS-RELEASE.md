@@ -24,6 +24,7 @@ Operators get updates from **GitHub Releases** (pre-built `.exe`), not by compil
    - `rustdesk-{tag}-x86_64.exe` — used by in-app updater
    - `DCS-Norway-RDC-{version}-x86_64-install.exe` — human-friendly Windows alias
    - `DCS-Norway-RDC-{version}-x86_64.apk` — DCS-branded Android client (emulator / x86_64)
+   - `DCS-Norway-RDC-{version}-aarch64.apk` — DCS-branded Android client (phones: arm64-v8a, e.g. Samsung S22+)
    Release is marked **non-prerelease** so clients can find it.
 
 ### Android (DCS-branded APK)
@@ -31,18 +32,19 @@ Operators get updates from **GitHub Releases** (pre-built `.exe`), not by compil
 The stock Flutter build already publishes `rustdesk-{tag}-*.apk` assets. For the
 **DCS Norway** Android client (Available devices only, DCS branding), attach:
 
-- `DCS-Norway-RDC-{version}-x86_64.apk`
+- `DCS-Norway-RDC-{version}-aarch64.apk` — physical phones (arm64-v8a; Samsung S22 and newer)
+- `DCS-Norway-RDC-{version}-x86_64.apk` — Android emulators / x86_64 devices
 
 Upload via the release page, or after a local/CI build:
 
 ```bash
+gh release upload 1.4.10 ./DCS-Norway-RDC-1.4.10-aarch64.apk --clobber
 gh release upload 1.4.10 ./DCS-Norway-RDC-1.4.10-x86_64.apk --clobber
 ```
 
 Notes:
-- x86_64 APK is for Android emulators and x86_64 devices.
-- Physical phones normally need `arm64-v8a` (separate build) — add
-  `DCS-Norway-RDC-{version}-aarch64.apk` the same way when available.
+- Physical phones need the **aarch64** APK (`lib/arm64-v8a/`). The x86_64 APK will not install/run on an S22.
+- Uninstall any previous DCS/RustDesk package with the same `applicationId` before installing if Android blocks the update.
 
 Manual run (same as step 4): Actions → **DCS Windows Release** → Run workflow.
 
