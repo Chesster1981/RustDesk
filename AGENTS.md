@@ -104,3 +104,30 @@ Then translate that source into the file's target language (infer the language f
 * New English-text keys use sentence case, not Title Case: `Use ID whitelisting`, **not** `Use ID Whitelisting`. Acronyms (ID, IP, 2FA…) stay uppercase. Legacy Title-Case keys (e.g. `Use IP Whitelisting`) stay as-is — do not rename them.
 * Since the key itself is the English display text, a sentence-case key usually needs **no** `en.rs` entry; add one only when the display text must differ from the key (e.g. `*_tip` keys).
 * Append each new key to `template.rs` (with `""`) and to every `src/lang/*.rs` file (translated, or `""` if unsure), at the end of the list.
+
+## Android testing (Cursor cloud)
+
+Cloud agents cannot attach to a host machine's Android Studio AVD. This repo's Cursor environment installs an in-VM Android SDK, NDK r28c, Flutter 3.24.5, and an x86_64 AVD named `rustdesk_api34`.
+
+Your local Android Studio AVD is still useful for interactive UI work on your machine; cloud agents build/install against the in-VM emulator (or produce an APK you sideload locally).
+
+### Setup
+
+* Install (idempotent): `bash .cursor/setup-android-env.sh`
+* Env vars: `source .cursor/env-android.sh` (also copied to `~/.cursor-android-env.sh` after setup)
+
+### Test loop
+
+1. Start emulator: `./scripts/android/start-emulator.sh`
+2. Build + install x86_64 APK: `./scripts/android/build-and-install-x86_64.sh`
+3. Inspect with `adb logcat`, `adb shell`, or the computerUse agent against the emulator UI when `DISPLAY` is set.
+
+### Emulator notes
+
+* Nested KVM often hangs the guest in cloud VMs. `start-emulator.sh` defaults to `-accel off` (software). Override with `ANDROID_EMULATOR_ACCEL=on` only if KVM is known-good.
+* First software boot can take several minutes; default wait is 600s (`ANDROID_EMULATOR_BOOT_TIMEOUT`).
+* When `DISPLAY` is set (Cursor VNC desktop), the emulator window is shown; otherwise `-no-window` is used.
+
+Native Rust + vcpkg Android deps are large; first `build-and-install-x86_64.sh` run is slow. Use `SKIP_NATIVE=1` only when `jniLibs/x86_64` is already populated.
+
+Versions mirror CI (`.github/workflows/flutter-build.yml`): Flutter 3.24.5, NDK r28c (`28.2.13676358`), cargo-ndk 3.1.2.
