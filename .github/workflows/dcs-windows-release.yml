@@ -107,9 +107,5 @@ jobs:
           alias_asset "rustdesk-${VER}-x86_64.exe" "DCS-Norway-RDC-${DISPLAY}-x86_64-install.exe" 1
           alias_asset "rustdesk-${VER}-aarch64.apk" "DCS-Norway-RDC-${DISPLAY}-aarch64.apk"
           alias_asset "rustdesk-${VER}-x86_64.deb" "DCS-Norway-RDC-${DISPLAY}-x86_64.deb"
-          alias_asset "rustdesk-${VER}-aarch64.dmg" "DCS-Norway-RDC-${DISPLAY}-aarch64.dmg"
-          alias_asset "rustdesk-${VER}-aarch64-aarch64.dmg" "DCS-Norway-RDC-${DISPLAY}-aarch64.dmg"
-          alias_asset "rustdesk-${VER}-x86_64.dmg" "DCS-Norway-RDC-${DISPLAY}-x86_64.dmg"
-          alias_asset "rustdesk-${VER}-x86_64-x86_64.dmg" "DCS-Norway-RDC-${DISPLAY}-x86_64.dmg"
           ls -la ./out
           gh release edit "$TAG" --repo "$REPO" --prerelease=false
