@@ -31,6 +31,7 @@ and the DCS About page.
    - `DCS-Norway-RDC-{version}-x86_64.deb` — Linux (when built)
    - `DCS-Norway-RDC-{version}-x86_64.dmg` — macOS Intel (when built)
    - `DCS-Norway-RDC-{version}-aarch64.dmg` — macOS Apple Silicon (when built)
+   - `DCS-Norway-RDC-{version}-ios.ipa` — iPad and iPhone (same IPA)
    Release is marked **non-prerelease** so clients can find it.
 
 Linux and both macOS architectures use the same Flutter desktop client as Windows (RdClient home,
@@ -73,11 +74,32 @@ Both architectures share `flutter/macos/` (display name **DCS Norway**, DCS app 
 
 The `.app` product name stays `RustDesk.app` for signing/CI; Finder and the Dock show **DCS Norway**.
 
-### iOS
+### iPad / iPhone (`.ipa`)
 
-iOS uses the same mobile UI as Android (DCS header, Available devices, DCS About). Display name
-and home-screen icons are branded. Distribute the IPA internally (not via the public App Store
-workflow in this fork).
+iPad and iPhone use the **same** DCS Flutter mobile client as Android (Available devices,
+DCS header, DCS About). The device family is iPhone + iPad.
+
+Website / GitHub Releases file:
+
+- `DCS-Norway-RDC-{version}-ios.ipa`
+
+Example:
+
+```
+https://github.com/Chesster1981/RustDesk/releases/download/1.4.10/DCS-Norway-RDC-1.4.10-ios.ipa
+```
+
+Build and publish:
+
+1. Actions → **DCS iOS Release** → Run workflow (branch = branding branch) → `release_tag` = `1.4.10`
+2. Or run **DCS Windows Release**, which also builds the iOS job in the Flutter workflow
+
+The IPA is unsigned (no App Store team on this fork). Install on iPad with **Sideloadly**,
+**AltStore**, or Apple Configurator using an Apple ID. Sideloadly re-signs the IPA on a Mac
+or Windows PC; the iPad must be connected (or use a wireless pairing). Free Apple IDs last
+7 days per sign; a paid Developer account lasts a year.
+
+Do **not** link the Android `.apk` or macOS `.dmg` for iPad.
 
 Manual run (same as step 4): Actions → **DCS Windows Release** → Run workflow.
 

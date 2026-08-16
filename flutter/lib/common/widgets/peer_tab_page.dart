@@ -83,13 +83,12 @@ class _PeerTabPageState extends State<PeerTabPage>
           : int.parse(uiType) == 1
               ? PeerUiType.tile
               : PeerUiType.list;
-    } else if (kUseRdClientHomeShell && (isDesktop || isWebDesktop)) {
-      // RdClient device cards resemble the tile layout.
+    } else if (kUseRdClientHomeShell) {
       peerCardUiType.value = PeerUiType.tile;
     }
     hideAbTagsPanel.value =
         bind.mainGetLocalOption(key: kOptionHideAbTagsPanel) == 'Y';
-    if (kUseRdClientHomeShell && (isDesktop || isWebDesktop)) {
+    if (kUseRdClientHomeShell) {
       hideAbTagsPanel.value = true;
     }
   }

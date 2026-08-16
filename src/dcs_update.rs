@@ -52,6 +52,7 @@ fn is_dcs_client_asset(name: &str, tag: &str) -> bool {
         || n.ends_with(".dmg")
         || n.ends_with(".rpm")
         || n.ends_with(".appimage")
+        || n.ends_with(".ipa")
 }
 
 fn release_has_client_asset(rel: &GhRelease) -> bool {
@@ -184,6 +185,20 @@ mod tests {
         assert_eq!(
             pick_latest_windows_release(&dmg).unwrap().tag_name,
             "1.4.12"
+        );
+
+        let ipa = vec![GhRelease {
+            tag_name: "1.4.13".into(),
+            html_url: "https://github.com/Chesster1981/RustDesk/releases/tag/1.4.13".into(),
+            draft: false,
+            prerelease: false,
+            assets: vec![GhAsset {
+                name: "DCS-Norway-RDC-1.4.13-ios.ipa".into(),
+            }],
+        }];
+        assert_eq!(
+            pick_latest_windows_release(&ipa).unwrap().tag_name,
+            "1.4.13"
         );
     }
 

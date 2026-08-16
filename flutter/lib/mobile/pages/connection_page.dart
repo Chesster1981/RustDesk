@@ -95,7 +95,11 @@ class _ConnectionPageState extends State<ConnectionPage> {
           child: PeerTabPage(),
         )
       ],
-    ).marginOnly(top: 2, left: 10, right: 10);
+    ).marginOnly(
+      top: 2,
+      left: isTablet(context) ? 24 : 10,
+      right: isTablet(context) ? 24 : 10,
+    );
   }
 
   /// Callback for the connect button.

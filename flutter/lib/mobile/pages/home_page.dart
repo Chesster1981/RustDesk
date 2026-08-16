@@ -152,6 +152,8 @@ class HomePageState extends State<HomePage> {
       );
     }
     if (kUseRdClientHomeShell) {
+      final tablet = isTablet(context);
+      final logo = tablet ? 36.0 : 28.0;
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
@@ -159,26 +161,34 @@ class HomePageState extends State<HomePage> {
           ClipOval(
             child: Image.asset(
               'assets/dcs_norway_logo.png',
-              width: 28,
-              height: 28,
+              width: logo,
+              height: logo,
               fit: BoxFit.cover,
               filterQuality: FilterQuality.medium,
               errorBuilder: (_, __, ___) => const Icon(Icons.desktop_windows),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: tablet ? 10 : 8),
           Flexible(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'DCS Norway',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.1),
+                  style: TextStyle(
+                    fontSize: tablet ? 20 : 16,
+                    fontWeight: FontWeight.w600,
+                    height: 1.1,
+                  ),
                 ),
                 Text(
                   'Remote Desktop Client',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w400, height: 1.1),
+                  style: TextStyle(
+                    fontSize: tablet ? 13 : 11,
+                    fontWeight: FontWeight.w400,
+                    height: 1.1,
+                  ),
                 ),
               ],
             ),

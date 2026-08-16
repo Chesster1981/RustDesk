@@ -658,25 +658,53 @@ jobs:
         shell: bash
         run: |
           pushd flutter
-          # flutter build ipa --release --obfuscate --split-debug-info=./split-debug-info --no-codesign
-          # for easy debugging
-          flutter build ipa --release --no-codesign
+          flutter build ios --release --no-codesign
 
-      # - name: Upload Artifacts
-      #   # if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
-      #   uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-      #   with:
-      #     name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
-      #     path: flutter/build/ios/ipa/*.ipa
+      - name: Package DCS iPad/iPhone IPA
+        if: env.UPLOAD_ARTIFACT == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP=""
+          for candidate in \
+            flutter/build/ios/iphoneos/Runner.app \
+            flutter/build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app
+          do
+            if [ -d "$candidate" ]; then
+              APP="$candidate"
+              break
+            fi
+          done
+          if [ -z "$APP" ]; then
+            APP="$(find flutter/build/ios -name 'Runner.app' -type d | head -n 1)"
+          fi
+          test -n "$APP" && test -d "$APP"
+          DISPLAY="${TAG_NAME:-${VERSION}}"
+          DISPLAY="${DISPLAY#dcs-}"
+          DISPLAY="${DISPLAY#v}"
+          IPA="DCS-Norway-RDC-${DISPLAY}-ios.ipa"
+          STAGING="$(mktemp -d)"
+          mkdir -p "$STAGING/Payload"
+          cp -R "$APP" "$STAGING/Payload/"
+          (cd "$STAGING" && zip -qr "${GITHUB_WORKSPACE}/${IPA}" Payload)
+          echo "IPA=${IPA}" >> "$GITHUB_ENV"
+          ls -lh "${GITHUB_WORKSPACE}/${IPA}"
 
-      # - name: Publish ipa package
-      #   # if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
-      #   uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
-      #   with:
-      #     prerelease: true
-      #     tag_name: ${{ env.TAG_NAME }}
-      #     files: |
-      #       flutter/build/ios/ipa/*.ipa
+      - name: Upload IPA artifact
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.IPA }}
+          path: ${{ env.IPA }}
+
+      - name: Publish IPA
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
+        with:
+          prerelease: true
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            ${{ env.IPA }}
 
 
   build-for-macOS:
