@@ -1,7 +1,7 @@
 [Desktop Entry]
-Name=RustDesk
-GenericName=Remote Desktop
-Comment=Remote Desktop
+Name=DCS Norway
+GenericName=Remote Desktop Client
+Comment=DCS Norway Remote Desktop Client
 Exec=rustdesk %u
 Icon=rustdesk
 Terminal=false

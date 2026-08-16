@@ -37,17 +37,33 @@ pub fn normalize_release_version(tag: &str) -> String {
     t.to_string()
 }
 
-fn release_has_windows_portable(rel: &GhRelease) -> bool {
-    let tag = rel.tag_name.as_str();
-    let want = format!("rustdesk-{tag}-x86_64.exe");
-    rel.assets.iter().any(|a| a.name == want)
+fn is_dcs_client_asset(name: &str, tag: &str) -> bool {
+    let n = name.to_ascii_lowercase();
+    let tag = tag.to_ascii_lowercase();
+    let branded = n.starts_with("dcs-norway-rdc-");
+    let stock = n.starts_with(&format!("rustdesk-{tag}-"))
+        || n.starts_with(&format!("rustdesk-{tag}."));
+    if !(branded || stock) {
+        return false;
+    }
+    n.ends_with(".exe")
+        || n.ends_with(".apk")
+        || n.ends_with(".deb")
+        || n.ends_with(".dmg")
+        || n.ends_with(".rpm")
+        || n.ends_with(".appimage")
 }
 
-/// Pick the newest published release that has a Windows x86_64 portable asset.
+fn release_has_client_asset(rel: &GhRelease) -> bool {
+    let tag = rel.tag_name.as_str();
+    rel.assets.iter().any(|a| is_dcs_client_asset(&a.name, tag))
+}
+
+/// Pick the newest published release that has a DCS client installer asset.
 pub fn pick_latest_windows_release(releases: &[GhRelease]) -> Option<&GhRelease> {
     releases
         .iter()
-        .find(|r| !r.draft && release_has_windows_portable(r))
+        .find(|r| !r.draft && release_has_client_asset(r))
 }
 
 /// Query GitHub Releases and return the release page URL when a newer build exists.
@@ -70,7 +86,7 @@ pub async fn check_dcs_github_update(current_version: &str) -> ResultType<Option
     }
     let releases: Vec<GhRelease> = resp.json().await?;
     let Some(latest) = pick_latest_windows_release(&releases) else {
-        log::debug!("No DCS Windows release asset found on GitHub");
+        log::debug!("No DCS client release asset found on GitHub");
         return Ok(None);
     };
 
@@ -136,6 +152,39 @@ mod tests {
         ];
         let picked = pick_latest_windows_release(&releases).unwrap();
         assert_eq!(picked.tag_name, "1.4.10");
+    }
+
+    #[test]
+    fn pick_accepts_linux_and_macos_assets() {
+        let releases = vec![
+            GhRelease {
+                tag_name: "1.4.11".into(),
+                html_url: "https://github.com/Chesster1981/RustDesk/releases/tag/1.4.11".into(),
+                draft: false,
+                prerelease: false,
+                assets: vec![GhAsset {
+                    name: "rustdesk-1.4.11-x86_64.deb".into(),
+                }],
+            },
+        ];
+        assert_eq!(
+            pick_latest_windows_release(&releases).unwrap().tag_name,
+            "1.4.11"
+        );
+
+        let dmg = vec![GhRelease {
+            tag_name: "1.4.12".into(),
+            html_url: "https://github.com/Chesster1981/RustDesk/releases/tag/1.4.12".into(),
+            draft: false,
+            prerelease: false,
+            assets: vec![GhAsset {
+                name: "DCS-Norway-RDC-1.4.12-aarch64.dmg".into(),
+            }],
+        }];
+        assert_eq!(
+            pick_latest_windows_release(&dmg).unwrap().tag_name,
+            "1.4.12"
+        );
     }
 
     #[test]

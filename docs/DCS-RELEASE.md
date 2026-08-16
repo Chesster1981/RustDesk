@@ -1,6 +1,10 @@
 # DCS Norway Remote Desktop Client — releases & updates
 
-Operators get updates from **GitHub Releases** (pre-built `.exe`), not by compiling source on their PCs.
+Operators get updates from **GitHub Releases** (pre-built installers), not by compiling source on their PCs.
+
+Windows, Linux, macOS (Apple Silicon and Intel), Android, and iOS share the same DCS client:
+branding, Available devices only (no Recent / Favorites / Discovered / Address book / Remote ID),
+and the DCS About page.
 
 ## Publish a new build
 
@@ -24,7 +28,13 @@ Operators get updates from **GitHub Releases** (pre-built `.exe`), not by compil
    - `rustdesk-{tag}-x86_64.exe` — used by in-app updater
    - `DCS-Norway-RDC-{version}-x86_64-install.exe` — human-friendly Windows alias
    - `DCS-Norway-RDC-{version}-x86_64.apk` — DCS-branded Android client (emulator / x86_64)
+   - `DCS-Norway-RDC-{version}-x86_64.deb` — Linux (when built)
+   - `DCS-Norway-RDC-{version}-x86_64.dmg` — macOS Intel (when built)
+   - `DCS-Norway-RDC-{version}-aarch64.dmg` — macOS Apple Silicon (when built)
    Release is marked **non-prerelease** so clients can find it.
+
+Linux and both macOS architectures use the same Flutter desktop client as Windows (RdClient home,
+Available devices, DCS About). iOS uses the same Flutter mobile client as Android.
 
 ### Android (DCS-branded APK)
 
@@ -44,6 +54,31 @@ Notes:
 - Physical phones normally need `arm64-v8a` (separate build) — add
   `DCS-Norway-RDC-{version}-aarch64.apk` the same way when available.
 
+### Linux (.deb)
+
+Build the Flutter Linux client from this branding branch, then attach:
+
+- `DCS-Norway-RDC-{version}-x86_64.deb`
+- `DCS-Norway-RDC-{version}-aarch64.deb` (when built)
+
+The `.desktop` launcher name is **DCS Norway**. The on-disk binary stays `rustdesk` so packaging
+paths remain compatible.
+
+### macOS (.dmg) — Apple Silicon and Intel
+
+Both architectures share `flutter/macos/` (display name **DCS Norway**, DCS app icon). Attach:
+
+- `DCS-Norway-RDC-{version}-aarch64.dmg` — Apple Silicon
+- `DCS-Norway-RDC-{version}-x86_64.dmg` — Intel
+
+The `.app` product name stays `RustDesk.app` for signing/CI; Finder and the Dock show **DCS Norway**.
+
+### iOS
+
+iOS uses the same mobile UI as Android (DCS header, Available devices, DCS About). Display name
+and home-screen icons are branded. Distribute the IPA internally (not via the public App Store
+workflow in this fork).
+
 Manual run (same as step 4): Actions → **DCS Windows Release** → Run workflow.
 
 ## How clients update
@@ -51,7 +86,8 @@ Manual run (same as step 4): Actions → **DCS Windows Release** → Run workflo
 - On startup (if **Check for software update on startup** is enabled — default on): queries  
   `https://api.github.com/repos/Chesster1981/RustDesk/releases`
 - Settings → **About** → **Check for updates**
-- If a newer tag has `rustdesk-{tag}-x86_64.exe`, the home header can show an Update card; About can start download + `--update` install.
+- A newer tag is offered when it has a DCS client asset (`.exe`, `.deb`, `.dmg`, `.apk`, …).
+  Windows can download + `--update` install; Linux / macOS / mobile open the GitHub Release page.
 
 ## Local test (no tag)
 
@@ -60,5 +96,6 @@ Build and run Release as usual; packing an installer is optional until you want 
 ## Notes
 
 - Compile-from-source on operator machines is **not** supported.
-- Windows x64 is the primary release target.
+- Windows x64 is the primary automated release target; Linux / macOS / iOS use the same branded
+  source and are packaged from this branch.
 - Code signing uses existing fork secrets when configured; unsigned builds are fine for internal DCS use.

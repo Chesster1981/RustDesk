@@ -532,6 +532,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         return const SizedBox.shrink();
       }
     } else if (isMacOS) {
+      if (kUseRdClientHomeShell) {
+        // Pure client: no host daemon or hosting-permission prompts.
+        return const SizedBox.shrink();
+      }
       final isOutgoingOnly = bind.isOutgoingOnly();
       if (!(isOutgoingOnly || bind.mainIsCanScreenRecording(prompt: false))) {
         return buildInstallCard("Permissions", "config_screen", "Configure",
@@ -569,7 +573,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       //   });
       // }
     } else if (isLinux) {
-      if (bind.isOutgoingOnly()) {
+      if (kUseRdClientHomeShell || bind.isOutgoingOnly()) {
         return Container();
       }
       final LinuxCards = <Widget>[];
