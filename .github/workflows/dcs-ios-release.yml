@@ -1,0 +1,184 @@
+# DCS Norway iPad/iPhone IPA — publishes DCS-Norway-RDC-{version}-ios.ipa
+# Same Flutter mobile client as Android (Available devices, DCS branding).
+name: DCS iOS Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Git tag / asset version (e.g. 1.4.10). Required when not running from a tag ref."
+        required: false
+        type: string
+        default: ""
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-[0-9]+'
+      - 'dcs-v[0-9]+.[0-9]+.[0-9]+'
+      - 'dcs-[0-9]+.[0-9]+.[0-9]+'
+      - 'dcs-v[0-9]+.[0-9]+.[0-9]+-[0-9]+'
+      - 'dcs-[0-9]+.[0-9]+.[0-9]+-[0-9]+'
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  RUST_VERSION: "1.75"
+  FLUTTER_VERSION: "3.24.5"
+  VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+jobs:
+  resolve-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      tag: ${{ steps.ver.outputs.tag }}
+    steps:
+      - id: ver
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          TAG="${INPUT_TAG:-}"
+          if [ -z "$TAG" ]; then
+            if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+              TAG="${GITHUB_REF_NAME}"
+            else
+              echo "::error::Set workflow_dispatch input release_tag (e.g. 1.4.10), or push a version tag."
+              exit 1
+            fi
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG}" >> "$GITHUB_OUTPUT"
+
+  generate-bridge:
+    uses: ./.github/workflows/bridge.yml
+
+  build-ios:
+    name: build DCS iPad/iPhone IPA
+    runs-on: macos-latest
+    needs: [resolve-version, generate-bridge]
+    env:
+      VERSION: ${{ needs.resolve-version.outputs.version }}
+      TAG_NAME: ${{ needs.resolve-version.outputs.tag }}
+    steps:
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Install dependencies
+        run: brew install nasm yasm
+
+      - name: Checkout source code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          submodules: recursive
+
+      - name: Install flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: "stable"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Patch flutter
+        run: |
+          cd $(dirname $(dirname $(which flutter)))
+          if [[ "3.24.5" == ${{ env.FLUTTER_VERSION }} ]]; then
+            git apply ${{ github.workspace }}/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff
+          fi
+
+      - name: Setup vcpkg with Github Actions binary cache
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
+        with:
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+          doNotCache: false
+
+      - name: Install vcpkg dependencies
+        run: |
+          if ! $VCPKG_ROOT/vcpkg \
+            install \
+            --triplet arm64-ios \
+            --x-install-root="$VCPKG_ROOT/installed"; then
+            find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
+              echo "$_1:"
+              echo "======"
+              cat "$_1"
+              echo "======"
+            done
+            exit 1
+          fi
+        shell: bash
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: aarch64-apple-ios
+          components: "rustfmt"
+
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          prefix-key: rustdesk-lib-cache-ios
+          key: aarch64-apple-ios
+
+      - name: Restore bridge files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bridge-artifact
+          path: ./
+
+      - name: Build rustdesk lib
+        run: |
+          rustup target add aarch64-apple-ios
+          cargo build --locked --features flutter,hwcodec --release --target aarch64-apple-ios --lib
+
+      - name: Build iOS app
+        shell: bash
+        run: |
+          pushd flutter
+          flutter build ios --release --no-codesign
+
+      - name: Package DCS iPad/iPhone IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP=""
+          for candidate in \
+            flutter/build/ios/iphoneos/Runner.app \
+            flutter/build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app
+          do
+            if [ -d "$candidate" ]; then
+              APP="$candidate"
+              break
+            fi
+          done
+          if [ -z "$APP" ]; then
+            APP="$(find flutter/build/ios -name 'Runner.app' -type d | head -n 1)"
+          fi
+          test -n "$APP" && test -d "$APP"
+          DISPLAY="${TAG_NAME}"
+          DISPLAY="${DISPLAY#dcs-}"
+          DISPLAY="${DISPLAY#v}"
+          IPA="DCS-Norway-RDC-${DISPLAY}-ios.ipa"
+          STAGING="$(mktemp -d)"
+          mkdir -p "$STAGING/Payload"
+          cp -R "$APP" "$STAGING/Payload/"
+          (cd "$STAGING" && zip -qr "${GITHUB_WORKSPACE}/${IPA}" Payload)
+          echo "IPA=${IPA}" >> "$GITHUB_ENV"
+          ls -lh "${GITHUB_WORKSPACE}/${IPA}"
+
+      - name: Publish IPA
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
+        with:
+          prerelease: false
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            ${{ env.IPA }}
