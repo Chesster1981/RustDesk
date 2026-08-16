@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
-"""Apply the DCS brand mark to logo/icon assets (Windows, Linux, macOS, iOS)."""
+"""Apply the DCS Norway logo to Windows, Android, and Linux icon assets."""
 
 from __future__ import annotations
 
 import base64
 import io
-import re
 import struct
 from pathlib import Path
 
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-HEX_PATH = Path(r"c:\Users\Ole\Desktop\Image.txt")
-SRC_CACHE = Path(r"C:\Users\Ole\AppData\Local\Temp\dcs_hex_logo.png")
-LOCAL_SOURCE = ROOT / "res" / "mac-icon.png"
+LOCAL_SOURCE = ROOT / "res" / "dcs-norway-logo-source.png"
 
 IOS_ICONS = [
     ("Icon-App-20x20@1x.png", 20, False),
@@ -36,17 +33,11 @@ IOS_ICONS = [
 
 
 def load_source() -> Image.Image:
-    if LOCAL_SOURCE.exists() and LOCAL_SOURCE.stat().st_size > 1000:
-        img = Image.open(LOCAL_SOURCE).convert("RGBA")
-        if img.size != (1024, 1024):
-            img = img.resize((1024, 1024), Image.Resampling.LANCZOS)
-        return img
-    if not SRC_CACHE.exists() or SRC_CACHE.stat().st_size < 1000:
-        raw = re.sub(r"\s+", "", HEX_PATH.read_text(encoding="utf-8", errors="ignore"))
-        SRC_CACHE.write_bytes(bytes.fromhex(raw))
-    img = Image.open(SRC_CACHE).convert("RGBA")
+    if not LOCAL_SOURCE.exists():
+        raise SystemExit(f"missing logo source {LOCAL_SOURCE}")
+    img = Image.open(LOCAL_SOURCE).convert("RGBA")
     if img.size != (1024, 1024):
-        raise SystemExit(f"unexpected source size {img.size}, want 1024x1024")
+        img = img.resize((1024, 1024), Image.Resampling.LANCZOS)
     return img
 
 
@@ -116,6 +107,34 @@ def write_icns(img: Image.Image, path: Path) -> None:
     print(f"ICNS -> {path.relative_to(ROOT)} ({path.stat().st_size} bytes)")
 
 
+ANDROID_LAUNCHER = [
+    ("mipmap-mdpi", 48, 108, 24),
+    ("mipmap-hdpi", 72, 162, 36),
+    ("mipmap-xhdpi", 96, 216, 48),
+    ("mipmap-xxhdpi", 144, 324, 72),
+    ("mipmap-xxxhdpi", 192, 432, 96),
+]
+
+
+def apply_android_icons(img: Image.Image) -> None:
+    res = ROOT / "flutter" / "android" / "app" / "src" / "main" / "res"
+    for folder, launcher, foreground, status in ANDROID_LAUNCHER:
+        d = res / folder
+        d.mkdir(parents=True, exist_ok=True)
+        icon = img.resize((launcher, launcher), Image.Resampling.LANCZOS)
+        icon.save(d / "ic_launcher.png", format="PNG", optimize=True)
+        icon.save(d / "ic_launcher_round.png", format="PNG", optimize=True)
+        # Adaptive-icon safe zone is the inner 66% of the foreground canvas.
+        fg = Image.new("RGBA", (foreground, foreground), (0, 0, 0, 0))
+        inner = int(foreground * 0.66)
+        placed = img.resize((inner, inner), Image.Resampling.LANCZOS)
+        off = (foreground - inner) // 2
+        fg.paste(placed, (off, off), placed)
+        fg.save(d / "ic_launcher_foreground.png", format="PNG", optimize=True)
+        flatten_rgb(img, status).save(d / "ic_stat_logo.png", format="PNG", optimize=True)
+        print(f"Android {folder} launcher={launcher} fg={foreground}")
+
+
 def apply_apple_icons(img: Image.Image) -> None:
     ios_dir = ROOT / "flutter" / "ios" / "Runner" / "Assets.xcassets" / "AppIcon.appiconset"
     for name, size, marketing in IOS_ICONS:
@@ -140,7 +159,7 @@ def main() -> None:
     save_png(img, assets / "logo.png", 256)
     save_png(img, assets / "logo_light.png", 256)
     save_png(img, assets / "logo_dark.png", 256)
-    # Keep flutter/assets/dcs_norway_logo.png — product header brand (Hetlebakken), not RustDesk.
+    save_png(img, assets / "dcs_norway_logo.png", 512)
     save_ico(img, assets / "icon.ico", [16, 32, 48, 64, 128, 256])
     write_icon_svg(img, assets / "icon.svg")
 
@@ -166,7 +185,7 @@ def main() -> None:
     if msi_icon.parent.exists():
         save_ico(img, msi_icon, [16, 32, 48, 64, 128, 256])
 
-    apply_apple_icons(img)
+    apply_android_icons(img)
     print("DONE")
 
 

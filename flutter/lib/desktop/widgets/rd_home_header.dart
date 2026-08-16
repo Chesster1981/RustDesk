@@ -38,14 +38,19 @@ class RdHomeHeader extends StatelessWidget {
                       'DCS Norway',
                       style: TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                         color: textPrimary,
                         height: 1.15,
                       ),
                     ),
                     Text(
                       'Remote Desktop Client',
-                      style: TextStyle(fontSize: 12, color: textMuted),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: textPrimary,
+                        height: 1.2,
+                      ),
                     ),
                   ],
                 ),
@@ -72,19 +77,19 @@ class RdHomeHeader extends StatelessWidget {
     return ClipOval(
       child: Image.asset(
         'assets/dcs_norway_logo.png',
-        width: 40,
-        height: 40,
-        fit: BoxFit.cover,
+        width: 48,
+        height: 48,
+        fit: BoxFit.contain,
         filterQuality: FilterQuality.medium,
         errorBuilder: (_, __, ___) => Container(
-          width: 40,
-          height: 40,
+          width: 48,
+          height: 48,
           decoration: const BoxDecoration(
             color: RdHomeTheme.accentSolid,
             shape: BoxShape.circle,
           ),
           child:
-              const Icon(Icons.desktop_windows, color: Colors.white, size: 22),
+              const Icon(Icons.desktop_windows, color: Colors.white, size: 24),
         ),
       ),
     );

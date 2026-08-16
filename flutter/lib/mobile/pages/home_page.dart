@@ -153,7 +153,7 @@ class HomePageState extends State<HomePage> {
     }
     if (kUseRdClientHomeShell) {
       final tablet = isTablet(context);
-      final logo = tablet ? 36.0 : 28.0;
+      final logo = tablet ? 44.0 : 32.0;
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
@@ -163,7 +163,7 @@ class HomePageState extends State<HomePage> {
               'assets/dcs_norway_logo.png',
               width: logo,
               height: logo,
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
               filterQuality: FilterQuality.medium,
               errorBuilder: (_, __, ___) => const Icon(Icons.desktop_windows),
             ),
@@ -178,16 +178,16 @@ class HomePageState extends State<HomePage> {
                   'DCS Norway',
                   style: TextStyle(
                     fontSize: tablet ? 20 : 16,
-                    fontWeight: FontWeight.w600,
-                    height: 1.1,
+                    fontWeight: FontWeight.w700,
+                    height: 1.15,
                   ),
                 ),
                 Text(
                   'Remote Desktop Client',
                   style: TextStyle(
-                    fontSize: tablet ? 13 : 11,
-                    fontWeight: FontWeight.w400,
-                    height: 1.1,
+                    fontSize: tablet ? 15 : 13,
+                    fontWeight: FontWeight.w500,
+                    height: 1.2,
                   ),
                 ),
               ],
