@@ -104,3 +104,22 @@ Then translate that source into the file's target language (infer the language f
 * New English-text keys use sentence case, not Title Case: `Use ID whitelisting`, **not** `Use ID Whitelisting`. Acronyms (ID, IP, 2FA…) stay uppercase. Legacy Title-Case keys (e.g. `Use IP Whitelisting`) stay as-is — do not rename them.
 * Since the key itself is the English display text, a sentence-case key usually needs **no** `en.rs` entry; add one only when the display text must differ from the key (e.g. `*_tip` keys).
 * Append each new key to `template.rs` (with `""`) and to every `src/lang/*.rs` file (translated, or `""` if unsure), at the end of the list.
+
+## Cursor Cloud specific instructions
+
+### Toolchain locations (installed in this VM)
+* Flutter 3.24.5 → `~/flutter/bin`; Android SDK → `~/android-sdk` (`ANDROID_HOME`/`ANDROID_SDK_ROOT`); JDK 17 → `/usr/lib/jvm/java-17-openjdk-amd64`; vcpkg → `~/vcpkg` (`VCPKG_ROOT`); `cargo-expand` + `flutter_rust_bridge_codegen` in `~/.cargo/bin`.
+* Add to PATH: `~/flutter/bin`, `~/android-sdk/cmdline-tools/latest/bin`, `~/android-sdk/platform-tools`, `~/android-sdk/emulator`.
+* Gradle 7.6.4 needs JDK 17, not the default JDK 21 — set once with `flutter config --jdk-dir /usr/lib/jvm/java-17-openjdk-amd64`.
+* vcpkg must build with gcc: run `vcpkg install ...` with `CC=gcc CXX=g++` (default `cc`/`c++` are clang here and fail `-lstdc++`).
+
+### Android emulator (no nested KVM)
+* `/dev/kvm` exists but a KVM-accelerated guest makes no progress in this VM. Run software-mode only: `emulator -avd rustdesk -accel off -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -no-window`. First `sudo chmod 666 /dev/kvm` if `accel-check` complains.
+* Cold boot ≈ 8 min; `System UI/Process isn't responding` ANRs are cosmetic (slow TCG). Debug Flutter builds render the first frame very slowly — screencap can stay black for a few minutes before the UI appears. For real speed use a physical device or a KVM-capable host.
+
+### Fast Android UI iteration without cross-compiling Rust
+The heavy part of the Android build is the Rust native lib + FFI bridge; the UI is all Flutter/Dart. To iterate quickly, reuse the prebuilt native libs from an official release APK whose version matches the repo:
+1. Extract into `flutter/android/app/src/main/jniLibs/x86_64/`: both `librustdesk.so` **and** `libc++_shared.so` (missing libc++ → `UnsatisfiedLinkError` at startup).
+2. Generate the FFI bridge once (needs the desktop Rust env + `VCPKG_ROOT`): `flutter_rust_bridge_codegen --rust-input ./src/flutter_ffi.rs --dart-output ./flutter/lib/generated_bridge.dart --c-output ./flutter/macos/Runner/bridge_generated.h`.
+3. `cd flutter && flutter pub get && flutter build apk --debug --target-platform android-x64` (or `flutter run -d emulator-5554` for hot reload).
+* `flutter/lib/generated_bridge.dart` and `jniLibs/*.so` are gitignored (generated/local) — do not commit them.
