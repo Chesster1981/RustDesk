@@ -2031,8 +2031,7 @@ jobs:
           path: ${{ env.DRM_DEB }}
 
   build-rustdesk-linux-sciter:
-    # 32-bit ARM Sciter is not a DCS product; crates.io fails in that qemu job.
-    if: ${{ inputs.upload-artifact && matrix.job.arch != 'armv7' }}
+    if: ${{ inputs.upload-artifact }}
     runs-on: ${{ matrix.job.on }}
     name: build-rustdesk-linux-sciter ${{ matrix.job.target }}
     strategy:
@@ -2049,16 +2048,6 @@ jobs:
               sciter_arch: x64,
               vcpkg-triplet: x64-linux,
               extra_features: ",hwcodec,unix-file-copy-paste",
-            }
-          - {
-              arch: armv7,
-              target: armv7-unknown-linux-gnueabihf,
-              on: ubuntu-22.04-arm,
-              distro: ubuntu18.04-rustdesk,
-              deb_arch: armhf,
-              sciter_arch: arm32,
-              vcpkg-triplet: arm-linux,
-              extra_features: ",unix-file-copy-paste",
             }
     steps:
       - name: Export GitHub Actions cache environment variables
