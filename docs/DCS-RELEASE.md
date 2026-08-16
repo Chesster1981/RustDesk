@@ -27,7 +27,7 @@ and the DCS About page.
 6. On the GitHub Release for that tag, confirm assets:
    - `rustdesk-{tag}-x86_64.exe` — used by in-app updater
    - `DCS-Norway-RDC-{version}-x86_64-install.exe` — human-friendly Windows alias
-   - `DCS-Norway-RDC-{version}-x86_64.apk` — DCS-branded Android client (emulator / x86_64)
+   - `DCS-Norway-RDC-{version}-aarch64.apk` — Android phones / tablets
    - `DCS-Norway-RDC-{version}-x86_64.deb` — Linux (when built)
    - `DCS-Norway-RDC-{version}-x86_64.dmg` — macOS Intel (when built)
    - `DCS-Norway-RDC-{version}-aarch64.dmg` — macOS Apple Silicon (when built)
@@ -39,21 +39,17 @@ Available devices, DCS About). iOS uses the same Flutter mobile client as Androi
 
 ### Android (DCS-branded APK)
 
-The stock Flutter build already publishes `rustdesk-{tag}-*.apk` assets. For the
-**DCS Norway** Android client (Available devices only, DCS branding), attach:
+Website / GitHub Releases file for phones and tablets:
 
-- `DCS-Norway-RDC-{version}-x86_64.apk`
+- `DCS-Norway-RDC-{version}-aarch64.apk`
 
 Upload via the release page, or after a local/CI build:
 
 ```bash
-gh release upload 1.4.10 ./DCS-Norway-RDC-1.4.10-x86_64.apk --clobber
+gh release upload 1.4.10 ./DCS-Norway-RDC-1.4.10-aarch64.apk --clobber
 ```
 
-Notes:
-- x86_64 APK is for Android emulators and x86_64 devices.
-- Physical phones normally need `arm64-v8a` (separate build) — add
-  `DCS-Norway-RDC-{version}-aarch64.apk` the same way when available.
+Do not publish `*-x86_64.apk`. That ABI is for PC Android emulators, not operator phones.
 
 ### Linux (.deb)
 
