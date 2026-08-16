@@ -2031,7 +2031,8 @@ jobs:
           path: ${{ env.DRM_DEB }}
 
   build-rustdesk-linux-sciter:
-    if: ${{ inputs.upload-artifact }}
+    # 32-bit ARM Sciter is not a DCS product; crates.io fails in that qemu job.
+    if: ${{ inputs.upload-artifact && matrix.job.arch != 'armv7' }}
     runs-on: ${{ matrix.job.on }}
     name: build-rustdesk-linux-sciter ${{ matrix.job.target }}
     strategy:

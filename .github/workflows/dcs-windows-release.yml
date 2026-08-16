@@ -68,6 +68,7 @@ jobs:
 
   publish-dcs-alias:
     name: Publish DCS-named installer alias
+    if: always() && needs.resolve-version.result == 'success'
     needs: [resolve-version, run-flutter-tag-build]
     runs-on: ubuntu-latest
     permissions:
@@ -107,6 +108,8 @@ jobs:
           alias_asset "rustdesk-${VER}-aarch64.apk" "DCS-Norway-RDC-${DISPLAY}-aarch64.apk"
           alias_asset "rustdesk-${VER}-x86_64.deb" "DCS-Norway-RDC-${DISPLAY}-x86_64.deb"
           alias_asset "rustdesk-${VER}-aarch64.dmg" "DCS-Norway-RDC-${DISPLAY}-aarch64.dmg"
+          alias_asset "rustdesk-${VER}-aarch64-aarch64.dmg" "DCS-Norway-RDC-${DISPLAY}-aarch64.dmg"
           alias_asset "rustdesk-${VER}-x86_64.dmg" "DCS-Norway-RDC-${DISPLAY}-x86_64.dmg"
+          alias_asset "rustdesk-${VER}-x86_64-x86_64.dmg" "DCS-Norway-RDC-${DISPLAY}-x86_64.dmg"
           ls -la ./out
           gh release edit "$TAG" --repo "$REPO" --prerelease=false
