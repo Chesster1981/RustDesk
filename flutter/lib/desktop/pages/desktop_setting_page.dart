@@ -19,10 +19,10 @@ import 'package:flutter_hbb/models/server_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:flutter_hbb/plugin/manager.dart';
 import 'package:flutter_hbb/plugin/widgets/desktop_settings.dart';
+import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../common/widgets/dialog.dart';
 import '../../common/widgets/login.dart';
@@ -65,7 +65,8 @@ class DesktopSettingPage extends StatefulWidget {
   final SettingsTabKey initialTabkey;
   static final List<SettingsTabKey> tabKeys = [
     SettingsTabKey.general,
-    if (!isWeb &&
+    if (!kUseRdClientHomeShell &&
+        !isWeb &&
         !bind.isOutgoingOnly() &&
         !bind.isDisableSettings() &&
         bind.mainGetBuildinOption(key: kOptionHideSecuritySetting) != 'Y')
@@ -76,10 +77,8 @@ class DesktopSettingPage extends StatefulWidget {
     if (!bind.isIncomingOnly()) SettingsTabKey.display,
     if (!isWeb && !bind.isIncomingOnly() && bind.pluginFeatureIsEnabled())
       SettingsTabKey.plugin,
-    if (!bind.isDisableAccount()) SettingsTabKey.account,
-    if (isWindows &&
-        bind.mainGetBuildinOption(key: kOptionHideRemotePrinterSetting) != 'Y')
-      SettingsTabKey.printer,
+    if (!kUseRdClientHomeShell && !bind.isDisableAccount())
+      SettingsTabKey.account,
     SettingsTabKey.about,
   ];
 
@@ -415,7 +414,8 @@ class _GeneralState extends State<_General> {
     return ListView(
       controller: scrollController,
       children: [
-        if (!isWeb) service(),
+        // Pure connection client: no local Service start/stop card.
+        if (!isWeb && !kUseRdClientHomeShell) service(),
         theme(),
         _Card(title: 'Language', children: [language()]),
         if (!isWeb) hwcodec(),
@@ -545,14 +545,14 @@ class _GeneralState extends State<_General> {
             ),
           ),
       ],
-      if (!isWeb && !bind.isCustomClient())
+      if (!isWeb)
         _OptionCheckBox(
           context,
           'Check for software update on startup',
           kOptionEnableCheckUpdate,
           isServer: false,
         ),
-      if (showAutoUpdate)
+      if (showAutoUpdate && (!kUseRdClientHomeShell || bind.isCustomClient()))
         _OptionCheckBox(
           context,
           'Auto update',
@@ -2455,96 +2455,96 @@ class _About extends StatefulWidget {
 }
 
 class _AboutState extends State<_About> {
+  bool _checkingUpdate = false;
+
+  Future<void> _checkForUpdates() async {
+    if (_checkingUpdate) return;
+    setState(() => _checkingUpdate = true);
+    try {
+      bind.mainGetSoftwareUpdateUrl();
+      // Allow native check + flutter event to land.
+      await Future.delayed(const Duration(seconds: 2));
+      final url = stateGlobal.updateUrl.value;
+      if (!mounted) return;
+      if (url.isEmpty) {
+        showToast('You are on the latest version.');
+      } else if ((isWindows || isMacOS) && bind.mainIsInstalled()) {
+        handleUpdate(url);
+      } else {
+        await launchUrl(Uri.parse(url));
+      }
+    } finally {
+      if (mounted) setState(() => _checkingUpdate = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return futureBuilder(future: () async {
-      final license = await bind.mainGetLicense();
       final version = await bind.mainGetVersion();
       final buildDate = await bind.mainGetBuildDate();
-      final fingerprint = await bind.mainGetFingerprint();
-      final myId = await bind.mainGetMyId();
       return {
-        'license': license,
         'version': version,
         'buildDate': buildDate,
-        'fingerprint': fingerprint,
-        'myId': myId
       };
     }(), hasData: (data) {
-      final license = data['license'].toString();
       final version = data['version'].toString();
       final buildDate = data['buildDate'].toString();
-      final fingerprint = data['fingerprint'].toString();
-      final myId = data['myId'].toString();
-      const linkStyle = TextStyle(decoration: TextDecoration.underline);
       final scrollController = ScrollController();
       return SingleChildScrollView(
         controller: scrollController,
-        child: _Card(title: translate('About RustDesk'), children: [
-          Column(
+        child: _Card(
+            title: 'About DCS Norway Remote Desktop Client',
+            children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(
-                height: 8.0,
-              ),
-              SelectionArea(
-                  child: Text('${translate('Version')}: $version')
-                      .marginSymmetric(vertical: 4.0)),
-              SelectionArea(
-                  child: Text('${translate('Build Date')}: $buildDate')
-                      .marginSymmetric(vertical: 4.0)),
-              if (!isWeb)
-                SelectionArea(
-                    child: Text('${translate('Fingerprint')}: $fingerprint')
-                        .marginSymmetric(vertical: 4.0)),
-              SelectionArea(
-                  child: Text('${translate('ID')}: $myId')
-                      .marginSymmetric(vertical: 4.0)),
-              InkWell(
-                  onTap: () {
-                    launchUrlString('https://rustdesk.com/privacy.html');
-                  },
-                  child: Text(
-                    translate('Privacy Statement'),
-                    style: linkStyle,
-                  ).marginSymmetric(vertical: 4.0)),
-              InkWell(
-                  onTap: () {
-                    launchUrlString('https://rustdesk.com');
-                  },
-                  child: Text(
-                    translate('Website'),
-                    style: linkStyle,
-                  ).marginSymmetric(vertical: 4.0)),
-              Container(
-                decoration: const BoxDecoration(color: Color(0xFF2c8cff)),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
-                child: SelectionArea(
-                    child: Row(
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Copyright © ${DateTime.now().toString().substring(0, 4)} Purslane Tech Pte. Ltd.\n$license',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          Text(
-                            translate('Slogan_tip'),
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white),
-                          )
-                        ],
-                      ),
+                    const SizedBox(height: 8.0),
+                    SelectionArea(
+                        child: Text('Base version: RustDesk $version')
+                            .marginSymmetric(vertical: 4.0)),
+                    SelectionArea(
+                        child: Text('${translate('Build Date')}: $buildDate')
+                            .marginSymmetric(vertical: 4.0)),
+                    SelectionArea(
+                        child: const Text('Creator: Chesster')
+                            .marginSymmetric(vertical: 4.0)),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: _checkingUpdate ? null : _checkForUpdates,
+                      icon: _checkingUpdate
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.system_update_alt, size: 18),
+                      label: Text(_checkingUpdate
+                          ? 'Checking...'
+                          : 'Check for updates'),
                     ),
                   ],
-                )),
-              ).marginSymmetric(vertical: 4.0)
+                ),
+              ),
+              const SizedBox(width: 16),
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Image.asset(
+                  // logo2: brand mark from Desktop Image.txt (not Hetlebakken/logo1)
+                  'assets/icon.png',
+                  width: 72,
+                  height: 72,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
             ],
-          ).marginOnly(left: _kContentHMargin)
+          ).marginOnly(left: _kContentHMargin, right: _kContentHMargin)
         ]),
       );
     });

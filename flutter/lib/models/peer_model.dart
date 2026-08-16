@@ -31,21 +31,44 @@ class Peer {
   }
 
   Peer.fromJson(Map<String, dynamic> json)
-      : id = json['id'] ?? '',
-        hash = json['hash'] ?? '',
-        password = json['password'] ?? '',
-        username = json['username'] ?? '',
-        hostname = json['hostname'] ?? '',
-        platform = json['platform'] ?? '',
-        alias = json['alias'] ?? '',
+      : id = json['id']?.toString() ?? '',
+        hash = json['hash']?.toString() ?? '',
+        // Betterdesk/legacy AB may store plaintext under password or info.password.
+        password = _passwordFromJson(json),
+        username = json['username']?.toString() ?? '',
+        hostname = json['hostname']?.toString() ?? '',
+        platform = json['platform']?.toString() ?? '',
+        // Betterdesk may send display_name when alias is unset.
+        alias = _stringOrEmpty(json['alias']).isNotEmpty
+            ? _stringOrEmpty(json['alias'])
+            : _stringOrEmpty(json['display_name']),
         tags = json['tags'] ?? [],
         forceAlwaysRelay = json['forceAlwaysRelay'] == 'true',
-        rdpPort = json['rdpPort'] ?? '',
-        rdpUsername = json['rdpUsername'] ?? '',
-        loginName = json['loginName'] ?? '',
-        device_group_name = json['device_group_name'] ?? '',
-        note = json['note'] is String ? json['note'] : '',
+        rdpPort = json['rdpPort']?.toString() ?? '',
+        rdpUsername = json['rdpUsername']?.toString() ?? '',
+        loginName = json['loginName']?.toString() ?? '',
+        device_group_name = json['device_group_name']?.toString() ?? '',
+        note = json['note'] is String ? json['note'] : (json['note']?.toString() ?? ''),
         sameServer = json['same_server'];
+
+  static String _stringOrEmpty(dynamic value) {
+    if (value is String) {
+      return value;
+    }
+    return value?.toString() ?? '';
+  }
+
+  static String _passwordFromJson(Map<String, dynamic> json) {
+    final direct = _stringOrEmpty(json['password']);
+    if (direct.isNotEmpty) {
+      return direct;
+    }
+    final info = json['info'];
+    if (info is Map) {
+      return _stringOrEmpty(info['password']);
+    }
+    return '';
+  }
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -78,6 +101,10 @@ class Peer {
     };
     if (includingHash) {
       res['hash'] = hash;
+    }
+    // Keep Betterdesk plaintext passwords across cache/push round-trips.
+    if (password.isNotEmpty) {
+      res['password'] = password;
     }
     return res;
   }
@@ -214,6 +241,23 @@ class Peers extends ChangeNotifier {
 
   int getPeersCount() {
     return peers.length;
+  }
+
+  // Keep Betterdesk display names on Recent/Fav cards after account logout.
+  void applyAliases(Map<String, String> normalizedIdToAlias) {
+    var changed = false;
+    for (final peer in peers) {
+      final name = normalizedIdToAlias[peer.id.replaceAll(' ', '')];
+      if (name == null || name.isEmpty || peer.alias == name) {
+        continue;
+      }
+      peer.alias = name;
+      changed = true;
+    }
+    if (changed) {
+      event = UpdateEvent.load;
+      notifyListeners();
+    }
   }
 
   void _updateOnlineState(Map<String, dynamic> evt) {

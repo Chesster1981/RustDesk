@@ -5,6 +5,7 @@ import 'package:flutter_hbb/web/settings_page.dart';
 import 'package:get/get.dart';
 import '../../common.dart';
 import '../../common/widgets/chat_page.dart';
+import '../../consts.dart';
 import '../../models/platform_model.dart';
 import '../../models/state_model.dart';
 import 'connection_page.dart';
@@ -145,6 +146,41 @@ class HomePageState extends State<HomePage> {
                     ).marginSymmetric(horizontal: 2),
                 ],
               ),
+            ),
+          ),
+        ],
+      );
+    }
+    if (kUseRdClientHomeShell) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipOval(
+            child: Image.asset(
+              'assets/dcs_norway_logo.png',
+              width: 28,
+              height: 28,
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (_, __, ___) => const Icon(Icons.desktop_windows),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'DCS Norway',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.1),
+                ),
+                Text(
+                  'Remote Desktop Client',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w400, height: 1.1),
+                ),
+              ],
             ),
           ),
         ],

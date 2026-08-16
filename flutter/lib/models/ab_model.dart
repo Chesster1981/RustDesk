@@ -214,6 +214,7 @@ class AbModel {
     _callbackPeerUpdate();
     if (listInitialized && current.initialized) {
       _saveCache();
+      await syncAliasesToLocalPeerConfigs();
     }
   }
 
@@ -651,6 +652,7 @@ class AbModel {
       _deserializeCache(data);
       legacyMode.value = addressbooks.containsKey(_legacyAddressBookName);
       trySetCurrentToLast();
+      await syncAliasesToLocalPeerConfigs();
     } catch (e) {
       debugPrint("load ab cache: $e");
     }
@@ -860,6 +862,107 @@ class AbModel {
       debugPrint("getdefaultSharedPassword: $e");
       return null;
     }
+  }
+
+  // Prefer peer-level password from any AB / Available devices; fall back to shared default.
+  String? getPasswordForPeerId(String id) {
+    final normalized = id.replaceAll(' ', '');
+    for (final ab in addressbooks.values) {
+      final peer = ab.peers.firstWhereOrNull(
+          (e) => e.id == id || e.id.replaceAll(' ', '') == normalized);
+      if (peer != null && peer.password.isNotEmpty) {
+        return peer.password;
+      }
+    }
+    // Available devices (group/API peers) may carry password on the card.
+    final groupPeer = gFFI.groupModel.peers.firstWhereOrNull(
+        (e) => e.id == id || e.id.replaceAll(' ', '') == normalized);
+    if (groupPeer != null && groupPeer.password.isNotEmpty) {
+      return groupPeer.password;
+    }
+    return getdefaultSharedPassword();
+  }
+
+  // Betterdesk/AB display name for Recent/Fav cards when local alias is empty.
+  String getAliasForPeerId(String id) {
+    final normalized = id.replaceAll(' ', '');
+    for (final ab in addressbooks.values) {
+      final peer = ab.peers.firstWhereOrNull(
+          (e) => e.id == id || e.id.replaceAll(' ', '') == normalized);
+      if (peer != null) {
+        if (peer.alias.isNotEmpty) {
+          return peer.alias;
+        }
+        if (peer.note.isNotEmpty) {
+          return peer.note;
+        }
+      }
+    }
+    return '';
+  }
+
+  // Devices/group list often has Betterdesk note/alias when AB does not.
+  String getGroupDisplayNameForPeerId(String id) {
+    final normalized = id.replaceAll(' ', '');
+    final peer = gFFI.groupModel.peers.firstWhereOrNull(
+        (e) => e.id == id || e.id.replaceAll(' ', '') == normalized);
+    if (peer == null) {
+      return '';
+    }
+    if (peer.alias.isNotEmpty) {
+      return peer.alias;
+    }
+    if (peer.note.isNotEmpty) {
+      return peer.note;
+    }
+    return '';
+  }
+
+  String getDisplayNameForPeerId(String id) {
+    final ab = getAliasForPeerId(id);
+    if (ab.isNotEmpty) {
+      return ab;
+    }
+    return getGroupDisplayNameForPeerId(id);
+  }
+
+  // Write AB/Devices display names into local peer configs for Recent/Fav.
+  Future<void> syncAliasesToLocalPeerConfigs() async {
+    final names = <String, String>{};
+    void putName(String id, String name) {
+      if (name.isEmpty) return;
+      names[id.replaceAll(' ', '')] = name;
+    }
+
+    for (final peer in allPeers()) {
+      putName(peer.id, peer.alias.isNotEmpty ? peer.alias : peer.note);
+    }
+    for (final peer in gFFI.groupModel.peers) {
+      final key = peer.id.replaceAll(' ', '');
+      if (names.containsKey(key)) continue;
+      putName(peer.id, peer.alias.isNotEmpty ? peer.alias : peer.note);
+    }
+    if (names.isEmpty) {
+      return;
+    }
+
+    // Persist using the Recent/Fav peer id so PeerConfig paths match.
+    for (final model in [gFFI.recentPeersModel, gFFI.favoritePeersModel]) {
+      for (final peer in model.peers) {
+        final name = names[peer.id.replaceAll(' ', '')];
+        if (name == null || name.isEmpty) continue;
+        try {
+          final local = bind.mainGetPeerOptionSync(id: peer.id, key: 'alias');
+          if (local != name) {
+            await bind.mainSetPeerAlias(id: peer.id, alias: name);
+          }
+        } catch (_) {}
+      }
+    }
+
+    // Update cards immediately so logout does not flash hostname.
+    gFFI.recentPeersModel.applyAliases(names);
+    gFFI.favoritePeersModel.applyAliases(names);
   }
 
 // #endregion
@@ -1101,7 +1204,6 @@ class LegacyAb extends BaseAb {
     bool full = false;
     for (var p in ps) {
       if (!isFull()) {
-        p.remove('password'); // legacy ab ignore password
         final index = peers.indexWhere((e) => e.id == p['id']);
         if (index >= 0) {
           _merge(Peer.fromJson(p), peers[index]);
@@ -1205,6 +1307,7 @@ class LegacyAb extends BaseAb {
 
   void _merge(Peer r, Peer p) {
     p.hash = r.hash.isEmpty ? p.hash : r.hash;
+    p.password = r.password.isEmpty ? p.password : r.password;
     p.username = r.username.isEmpty ? p.username : r.username;
     p.hostname = r.hostname.isEmpty ? p.hostname : r.hostname;
     p.platform = r.platform.isEmpty ? p.platform : r.platform;

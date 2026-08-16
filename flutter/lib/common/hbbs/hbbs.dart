@@ -82,15 +82,23 @@ class PeerPayload {
   String user_name = '';
   String? device_group_name;
   String note = '';
+  String alias = '';
+  // BetterDesk Access Policy password for Accessible devices auto-connect.
+  String password = '';
 
   PeerPayload.fromJson(Map<String, dynamic> json)
-      : id = json['id'] ?? '',
+      : id = json['id']?.toString() ?? '',
         info = (json['info'] is Map<String, dynamic>) ? json['info'] : {},
         status = json['status'],
         user = json['user'] ?? '',
         user_name = json['user_name'] ?? '',
-        device_group_name = json['device_group_name'] ?? '',
-        note = json['note'] ?? '';
+        device_group_name = json['device_group_name'],
+        note = json['note']?.toString() ?? '',
+        // Betterdesk puts device note / AB alias in `alias`.
+        alias = (json['alias']?.toString() ?? '').isNotEmpty
+            ? json['alias'].toString()
+            : (json['display_name']?.toString() ?? ''),
+        password = json['password']?.toString() ?? '';
 
   static Peer toPeer(PeerPayload p) {
     return Peer.fromJson({
@@ -101,6 +109,9 @@ class PeerPayload {
       "hostname": p.info['device_name'],
       "device_group_name": p.device_group_name,
       "note": p.note,
+      "alias": p.alias.isNotEmpty ? p.alias : p.note,
+      "display_name": p.alias,
+      "password": p.password,
     });
   }
 

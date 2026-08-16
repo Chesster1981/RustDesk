@@ -236,6 +236,8 @@ async fn start_hbbs_sync_async() {
                 v["id"] = json!(id);
                 v["uuid"] = json!(crate::encode64(hbb_common::get_uuid()));
                 v["ver"] = json!(hbb_common::get_version_number(crate::VERSION));
+                v["os"] = json!(std::env::consts::OS);
+                v["app_name"] = json!(crate::get_app_name());
                 if !conns.is_empty() {
                     v["conns"] = json!(conns);
                 }
