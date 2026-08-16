@@ -37,14 +37,21 @@ class PeerTabModel with ChangeNotifier {
     IconFont.addressBook,
     IconFont.deviceGroupFill,
   ];
+  // Pure connection client: only Accessible devices.
   List<bool> isEnabled = List.from([
-    true,
-    true,
-    !isWeb && bind.mainGetLocalOption(key: "disable-discovery-panel") != "Y",
-    !(bind.isDisableAb() || bind.isDisableAccount()),
+    false,
+    false,
+    false,
+    false,
     !(bind.isDisableGroupPanel() || bind.isDisableAccount()),
   ]);
-  final List<bool> _isVisible = List.filled(maxTabCount, true, growable: false);
+  final List<bool> _isVisible = List.from([
+    false,
+    false,
+    false,
+    false,
+    true,
+  ]);
   List<bool> get isVisibleEnabled => () {
         final list = _isVisible.toList();
         for (int i = 0; i < maxTabCount; i++) {
@@ -68,52 +75,11 @@ class PeerTabModel with ChangeNotifier {
   String get lastId => _lastId;
 
   PeerTabModel(this.parent) {
-    // visible
-    try {
-      final option = bind.getLocalFlutterOption(k: kOptionPeerTabVisible);
-      if (option.isNotEmpty) {
-        List<dynamic> decodeList = jsonDecode(option);
-        if (decodeList.length == _isVisible.length) {
-          for (int i = 0; i < _isVisible.length; i++) {
-            if (decodeList[i] is bool) {
-              _isVisible[i] = decodeList[i];
-            }
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint("failed to get peer tab visible list:$e");
+    // Pure client: only Accessible devices — ignore saved tab visibility.
+    for (int i = 0; i < maxTabCount; i++) {
+      _isVisible[i] = i == PeerTabIndex.group.index;
     }
-    // order
-    try {
-      final option = bind.getLocalFlutterOption(k: kOptionPeerTabOrder);
-      if (option.isNotEmpty) {
-        List<dynamic> decodeList = jsonDecode(option);
-        if (decodeList.length == maxTabCount) {
-          var sortedList = decodeList.toList();
-          sortedList.sort();
-          bool valid = true;
-          for (int i = 0; i < maxTabCount; i++) {
-            if (sortedList[i] is! int || sortedList[i] != i) {
-              valid = false;
-            }
-          }
-          if (valid) {
-            for (int i = 0; i < orders.length; i++) {
-              orders[i] = decodeList[i];
-            }
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint("failed to get peer tab order list: $e");
-    }
-    // init currentTab
-    _currentTab =
-        int.tryParse(bind.getLocalFlutterOption(k: kOptionPeerTabIndex)) ?? 0;
-    if (_currentTab < 0 || _currentTab >= maxTabCount) {
-      _currentTab = 0;
-    }
+    _currentTab = PeerTabIndex.group.index;
     _trySetCurrentTabToFirstVisibleEnabled();
   }
 
@@ -216,21 +182,18 @@ class PeerTabModel with ChangeNotifier {
     }
   }
 
-  setTabVisible(int index, bool visible) {
-    if (index >= 0 && index < maxTabCount) {
-      if (_isVisible[index] != visible) {
-        _isVisible[index] = visible;
-        if (index == _currentTab && !visible) {
-          _trySetCurrentTabToFirstVisibleEnabled();
-        } else if (visible && visibleEnabledOrderedIndexs.length == 1) {
-          _currentTab = index;
-        }
-        try {
-          bind.setLocalFlutterOption(
-              k: kOptionPeerTabVisible, v: jsonEncode(_isVisible));
-        } catch (_) {}
-        notifyListeners();
-      }
+  setTabVisible(int index, bool _) {
+    // Pure client: only Accessible devices; ignore other toggles.
+    if (index != PeerTabIndex.group.index) {
+      return;
+    }
+    if (!_isVisible[index]) {
+      _isVisible[index] = true;
+      try {
+        bind.setLocalFlutterOption(
+            k: kOptionPeerTabVisible, v: jsonEncode(_isVisible));
+      } catch (_) {}
+      notifyListeners();
     }
   }
 

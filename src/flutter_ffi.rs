@@ -1756,7 +1756,8 @@ pub fn main_get_last_remote_id() -> String {
 }
 
 pub fn main_get_software_update_url() {
-    crate::common::check_software_update();
+    // Explicit UI / timer trigger: always run the check (startup still honors enable-check-update).
+    std::thread::spawn(move || hbb_common::allow_err!(crate::common::do_check_software_update()));
 }
 
 pub fn main_get_home_dir() -> String {
