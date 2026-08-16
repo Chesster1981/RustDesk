@@ -82,16 +82,31 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ASSET="rustdesk-${VER}-x86_64.exe"
-          mkdir -p ./out
-          gh release download "$TAG" --repo "$REPO" --pattern "$ASSET" --dir ./out
-          test -f "./out/$ASSET"
           DISPLAY="${VER}"
           DISPLAY="${DISPLAY#dcs-}"
           DISPLAY="${DISPLAY#v}"
-          ALIAS="DCS-Norway-RDC-${DISPLAY}-x86_64-install.exe"
-          cp "./out/$ASSET" "./out/$ALIAS"
+          mkdir -p ./out
+
+          alias_asset() {
+            local src="$1" dest="$2" required="${3:-0}"
+            if gh release download "$TAG" --repo "$REPO" --pattern "$src" --dir ./out; then
+              cp "./out/$src" "./out/$dest"
+              gh release upload "$TAG" "./out/$dest" --repo "$REPO" --clobber
+              if [[ "$src" != rustdesk-"${VER}"-x86_64.exe ]]; then
+                gh release delete-asset "$TAG" "$src" --repo "$REPO" --yes || true
+              fi
+            elif [[ "$required" == "1" ]]; then
+              echo "::error::missing required asset $src"
+              exit 1
+            else
+              echo "skip missing $src"
+            fi
+          }
+
+          alias_asset "rustdesk-${VER}-x86_64.exe" "DCS-Norway-RDC-${DISPLAY}-x86_64-install.exe" 1
+          alias_asset "rustdesk-${VER}-aarch64.apk" "DCS-Norway-RDC-${DISPLAY}-aarch64.apk"
+          alias_asset "rustdesk-${VER}-x86_64.deb" "DCS-Norway-RDC-${DISPLAY}-x86_64.deb"
+          alias_asset "rustdesk-${VER}-aarch64.dmg" "DCS-Norway-RDC-${DISPLAY}-aarch64.dmg"
+          alias_asset "rustdesk-${VER}-x86_64.dmg" "DCS-Norway-RDC-${DISPLAY}-x86_64.dmg"
           ls -la ./out
-          # Promote off prerelease and attach human-friendly alias.
           gh release edit "$TAG" --repo "$REPO" --prerelease=false
-          gh release upload "$TAG" "./out/$ALIAS" --repo "$REPO" --clobber
