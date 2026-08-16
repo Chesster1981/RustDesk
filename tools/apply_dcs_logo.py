@@ -8,10 +8,12 @@ import io
 import struct
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL_SOURCE = ROOT / "res" / "dcs-norway-logo-source.png"
+# User-uploaded original (RGB, white corners). Prefer this over a previously punched source.
+ORIGINAL_UPLOAD = Path("/opt/cursor/artifacts/assets/dcs_norway_logo_source.png")
 
 IOS_ICONS = [
     ("Icon-App-20x20@1x.png", 20, False),
@@ -32,13 +34,27 @@ IOS_ICONS = [
 ]
 
 
+def circular_knockout(img: Image.Image) -> Image.Image:
+    # Inscribed circle only. Flood-filling near-white also deletes the sky
+    # because the top of the ring is white and connects to the corners.
+    rgb = img.convert("RGB")
+    w, h = rgb.size
+    opaque = rgb.convert("RGBA")
+    mask = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, w - 1, h - 1), fill=255)
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    out.paste(opaque, (0, 0), mask)
+    return out
+
+
 def load_source() -> Image.Image:
-    if not LOCAL_SOURCE.exists():
-        raise SystemExit(f"missing logo source {LOCAL_SOURCE}")
-    img = Image.open(LOCAL_SOURCE).convert("RGBA")
+    src = ORIGINAL_UPLOAD if ORIGINAL_UPLOAD.exists() else LOCAL_SOURCE
+    if not src.exists():
+        raise SystemExit(f"missing logo source {src}")
+    img = Image.open(src)
     if img.size != (1024, 1024):
         img = img.resize((1024, 1024), Image.Resampling.LANCZOS)
-    return img
+    return circular_knockout(img)
 
 
 def save_png(img: Image.Image, path: Path, size: int) -> None:
@@ -152,6 +168,9 @@ def apply_apple_icons(img: Image.Image) -> None:
 
 def main() -> None:
     img = load_source()
+    LOCAL_SOURCE.parent.mkdir(parents=True, exist_ok=True)
+    img.save(LOCAL_SOURCE, format="PNG", optimize=True)
+    print(f"source -> {LOCAL_SOURCE.relative_to(ROOT)} ({LOCAL_SOURCE.stat().st_size} bytes)")
     assets = ROOT / "flutter" / "assets"
     res = ROOT / "res"
 
