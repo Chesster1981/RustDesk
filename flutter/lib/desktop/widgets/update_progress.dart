@@ -9,6 +9,64 @@ import 'package:url_launcher/url_launcher.dart';
 
 final _isExtracting = false.obs;
 
+const _kUpdatePromptTag = 'dcs-software-update';
+final _dismissedUpdateUrls = <String>{};
+bool _updatePromptOpen = false;
+
+/// Prompt once per release URL per process. Hourly checks still catch a newer tag.
+void promptSoftwareUpdate(String url) {
+  if (url.isEmpty || _dismissedUpdateUrls.contains(url) || _updatePromptOpen) {
+    return;
+  }
+  _updatePromptOpen = true;
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final app = bind.mainGetAppNameSync();
+    final version = bind.mainGetNewVersion();
+    final canInstallInApp = isWindows || isMacOS;
+    try {
+      for (var i = 0; i < 20 && globalKey.currentState?.overlay == null; i++) {
+        await Future.delayed(const Duration(milliseconds: 250));
+      }
+      await gFFI.dialogManager.show(
+        (setState, close, context) {
+          return CustomAlertDialog(
+            title: Text(translate('Update')),
+            content: Text(
+              '${translate("new-version-of-{$app}-tip")} ($version).',
+            ),
+            actions: [
+              dialogButton('Cancel', onPressed: () {
+                _dismissedUpdateUrls.add(url);
+                close();
+              }, isOutline: true),
+              dialogButton(canInstallInApp ? 'Update' : 'Download',
+                  onPressed: () {
+                _dismissedUpdateUrls.add(url);
+                close();
+                if (canInstallInApp) {
+                  handleUpdate(url);
+                } else {
+                  launchUrl(Uri.parse(url));
+                }
+              }),
+            ],
+            onCancel: () {
+              _dismissedUpdateUrls.add(url);
+              close();
+            },
+          );
+        },
+        tag: _kUpdatePromptTag,
+        forceGlobal: true,
+      );
+    } catch (e) {
+      debugPrint('software update prompt: $e');
+    } finally {
+      _updatePromptOpen = false;
+    }
+  });
+}
+
 void handleUpdate(String releasePageUrl) {
   _isExtracting.value = false;
   String downloadUrl = releasePageUrl.replaceAll('tag', 'download');

@@ -38,6 +38,7 @@ import 'desktop/pages/remote_page.dart' as desktop_remote;
 import 'desktop/pages/file_manager_page.dart' as desktop_file_manager;
 import 'desktop/pages/view_camera_page.dart' as desktop_view_camera;
 import 'package:flutter_hbb/desktop/widgets/remote_toolbar.dart';
+import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
 import 'models/model.dart';
 import 'models/platform_model.dart';
 
@@ -4096,19 +4097,26 @@ void earlyAssert() {
   assert('\1' == '1');
 }
 
+Timer? _softwareUpdateCheckTimer;
+
 void checkUpdate() {
-  if (!isWeb) {
-    platformFFI.registerEventHandler(
-        kCheckSoftwareUpdateFinish, kCheckSoftwareUpdateFinish,
-        (Map<String, dynamic> evt) async {
-      if (evt['url'] is String) {
-        stateGlobal.updateUrl.value = evt['url'];
-      }
-    });
-    Timer(const Duration(seconds: 1), () async {
-      bind.mainGetSoftwareUpdateUrl();
-    });
+  if (isWeb) {
+    return;
   }
+  platformFFI.registerEventHandler(
+      kCheckSoftwareUpdateFinish, kCheckSoftwareUpdateFinish,
+      (Map<String, dynamic> evt) async {
+    if (evt['url'] is String) {
+      final url = evt['url'] as String;
+      stateGlobal.updateUrl.value = url;
+      promptSoftwareUpdate(url);
+    }
+  }, replace: true);
+  void runCheck() => bind.mainGetSoftwareUpdateUrl();
+  Timer(const Duration(seconds: 1), runCheck);
+  _softwareUpdateCheckTimer?.cancel();
+  _softwareUpdateCheckTimer =
+      Timer.periodic(const Duration(hours: 1), (_) => runCheck());
 }
 
 // https://github.com/flutter/flutter/issues/153560#issuecomment-2497160535

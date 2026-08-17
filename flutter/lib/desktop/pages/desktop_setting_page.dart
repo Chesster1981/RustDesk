@@ -19,7 +19,6 @@ import 'package:flutter_hbb/models/server_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:flutter_hbb/plugin/manager.dart';
 import 'package:flutter_hbb/plugin/widgets/desktop_settings.dart';
-import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -2447,36 +2446,8 @@ class __PrinterState extends State<_Printer> {
   }
 }
 
-class _About extends StatefulWidget {
+class _About extends StatelessWidget {
   const _About({Key? key}) : super(key: key);
-
-  @override
-  State<_About> createState() => _AboutState();
-}
-
-class _AboutState extends State<_About> {
-  bool _checkingUpdate = false;
-
-  Future<void> _checkForUpdates() async {
-    if (_checkingUpdate) return;
-    setState(() => _checkingUpdate = true);
-    try {
-      bind.mainGetSoftwareUpdateUrl();
-      // Allow native check + flutter event to land.
-      await Future.delayed(const Duration(seconds: 2));
-      final url = stateGlobal.updateUrl.value;
-      if (!mounted) return;
-      if (url.isEmpty) {
-        showToast('You are on the latest version.');
-      } else if ((isWindows || isMacOS) && bind.mainIsInstalled()) {
-        handleUpdate(url);
-      } else {
-        await launchUrl(Uri.parse(url));
-      }
-    } finally {
-      if (mounted) setState(() => _checkingUpdate = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -2513,20 +2484,6 @@ class _AboutState extends State<_About> {
                     SelectionArea(
                         child: const Text('Creator: Chesster')
                             .marginSymmetric(vertical: 4.0)),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: _checkingUpdate ? null : _checkForUpdates,
-                      icon: _checkingUpdate
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.system_update_alt, size: 18),
-                      label: Text(_checkingUpdate
-                          ? 'Checking...'
-                          : 'Check for updates'),
-                    ),
                   ],
                 ),
               ),
@@ -2534,7 +2491,6 @@ class _AboutState extends State<_About> {
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Image.asset(
-                  // logo2: brand mark from Desktop Image.txt (not Hetlebakken/logo1)
                   'assets/icon.png',
                   width: 72,
                   height: 72,

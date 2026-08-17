@@ -958,12 +958,12 @@ pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
 }
 
 async fn do_check_dcs_software_update() -> hbb_common::ResultType<()> {
-    #[cfg(any(target_os = "android", target_os = "ios"))]
+    #[cfg(target_os = "ios")]
     {
         *SOFTWARE_UPDATE_URL.lock().unwrap() = "".to_string();
         return Ok(());
     }
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    #[cfg(not(target_os = "ios"))]
     {
         match crate::dcs_update::check_dcs_github_update(crate::VERSION).await? {
             Some(response_url) => {

@@ -60,7 +60,7 @@ mod whiteboard;
 mod updater;
 
 /// DCS Norway GitHub Releases update check (custom client).
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
+#[cfg(not(target_os = "ios"))]
 mod dcs_update;
 
 mod ui_cm_interface;
