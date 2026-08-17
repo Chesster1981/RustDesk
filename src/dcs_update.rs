@@ -115,6 +115,69 @@ pub fn is_allowed_dcs_update_url(owner: &str, repo: &str) -> bool {
     owner.eq_ignore_ascii_case(DCS_RELEASES_OWNER) && repo.eq_ignore_ascii_case(DCS_RELEASES_REPO)
 }
 
+/// Local path for a GitHub release asset. Shared by Windows, Linux, and Android.
+pub fn get_update_download_file_from_url(url: &str) -> Option<std::path::PathBuf> {
+    use std::path::{Component, Path};
+
+    let parsed = url::Url::parse(url).ok()?;
+    if !url.starts_with("https://github.com/")
+        || parsed.scheme() != "https"
+        || parsed.host_str() != Some("github.com")
+        || !parsed.username().is_empty()
+        || parsed.password().is_some()
+        || parsed.port().is_some()
+        || parsed.query().is_some()
+        || parsed.fragment().is_some()
+    {
+        return None;
+    }
+
+    let mut segments = parsed.path_segments()?;
+    let owner = segments.next()?;
+    let repo = segments.next()?;
+    let releases = segments.next()?;
+    let download = segments.next()?;
+    let tag = segments.next()?;
+    let filename = segments.next()?;
+    let no_extra_segments = segments.next().is_none();
+
+    let stock_ok = owner == "rustdesk" && repo == "rustdesk";
+    let dcs_ok = is_allowed_dcs_update_url(owner, repo);
+    if !(stock_ok || dcs_ok)
+        || releases != "releases"
+        || download != "download"
+        || tag.is_empty()
+        || !no_extra_segments
+        || !is_plain_update_filename(filename)
+    {
+        return None;
+    }
+
+    Some(std::env::temp_dir().join(filename))
+}
+
+fn is_plain_update_filename(filename: &str) -> bool {
+    use std::path::{Component, Path};
+
+    if filename.is_empty()
+        || filename.contains('/')
+        || filename.contains('\\')
+        || filename.contains(':')
+    {
+        return false;
+    }
+
+    let mut components = Path::new(filename).components();
+    matches!(
+        components.next(),
+        Some(Component::Normal(name)) if name.to_str() == Some(filename)
+    ) && components.next().is_none()
+}
+
+pub fn get_download_file_from_url(url: &str) -> Option<std::path::PathBuf> {
+    get_update_download_file_from_url(url)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -192,5 +255,20 @@ mod tests {
         assert!(is_allowed_dcs_update_url("Chesster1981", "RustDesk"));
         assert!(is_allowed_dcs_update_url("chesster1981", "rustdesk"));
         assert!(!is_allowed_dcs_update_url("rustdesk", "rustdesk"));
+    }
+
+    #[test]
+    fn download_url_accepts_windows_linux_android_assets() {
+        for name in [
+            "rustdesk-1.4.14-x86_64.exe",
+            "rustdesk-1.4.14-x86_64.deb",
+            "rustdesk-1.4.14-aarch64.apk",
+        ] {
+            let url = format!(
+                "https://github.com/Chesster1981/RustDesk/releases/download/1.4.14/{name}"
+            );
+            let file = get_download_file_from_url(&url).expect(name);
+            assert_eq!(file.file_name().and_then(|n| n.to_str()), Some(name));
+        }
     }
 }

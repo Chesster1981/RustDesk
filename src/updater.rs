@@ -2,7 +2,7 @@ use crate::{common::do_check_software_update, hbbs_http::create_http_client_with
 use hbb_common::{bail, config, log, ResultType};
 use std::{
     io::Write,
-    path::{Component, Path, PathBuf},
+    path::PathBuf,
     sync::{
         atomic::{AtomicUsize, Ordering},
         mpsc::{channel, Receiver, Sender},
@@ -352,64 +352,7 @@ fn update_new_version(update_msi: bool, version: &str, file_path: &PathBuf) {
     }
 }
 
-pub fn get_update_download_file_from_url(url: &str) -> Option<PathBuf> {
-    let parsed = url::Url::parse(url).ok()?;
-    // Check the raw prefix before Url normalizes default ports.
-    if !url.starts_with("https://github.com/")
-        || parsed.scheme() != "https"
-        || parsed.host_str() != Some("github.com")
-        || !parsed.username().is_empty()
-        || parsed.password().is_some()
-        || parsed.port().is_some()
-        || parsed.query().is_some()
-        || parsed.fragment().is_some()
-    {
-        return None;
-    }
-
-    let mut segments = parsed.path_segments()?;
-    let owner = segments.next()?;
-    let repo = segments.next()?;
-    let releases = segments.next()?;
-    let download = segments.next()?;
-    let tag = segments.next()?;
-    let filename = segments.next()?;
-    let no_extra_segments = segments.next().is_none();
-
-    let stock_ok = owner == "rustdesk" && repo == "rustdesk";
-    let dcs_ok = crate::dcs_update::is_allowed_dcs_update_url(owner, repo);
-    if !(stock_ok || dcs_ok)
-        || releases != "releases"
-        || download != "download"
-        || tag.is_empty()
-        || !no_extra_segments
-        || !is_plain_update_filename(filename)
-    {
-        return None;
-    }
-
-    Some(std::env::temp_dir().join(filename))
-}
-
-fn is_plain_update_filename(filename: &str) -> bool {
-    if filename.is_empty()
-        || filename.contains('/')
-        || filename.contains('\\')
-        || filename.contains(':')
-    {
-        return false;
-    }
-
-    let mut components = Path::new(filename).components();
-    matches!(
-        components.next(),
-        Some(Component::Normal(name)) if name.to_str() == Some(filename)
-    ) && components.next().is_none()
-}
-
-pub fn get_download_file_from_url(url: &str) -> Option<PathBuf> {
-    get_update_download_file_from_url(url)
-}
+pub use crate::dcs_update::{get_download_file_from_url, get_update_download_file_from_url};
 
 /// Queries all active connections (remote, file-transfer, port-forward, camera, terminal)
 /// from every logged-in user's --server process via IPC.

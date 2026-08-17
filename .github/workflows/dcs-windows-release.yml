@@ -93,9 +93,7 @@ jobs:
             if gh release download "$TAG" --repo "$REPO" --pattern "$src" --dir ./out; then
               cp "./out/$src" "./out/$dest"
               gh release upload "$TAG" "./out/$dest" --repo "$REPO" --clobber
-              if [[ "$src" != rustdesk-"${VER}"-x86_64.exe ]]; then
-                gh release delete-asset "$TAG" "$src" --repo "$REPO" --yes || true
-              fi
+              # Keep rustdesk-* names so Windows, Linux, and Android in-app updaters share one asset scheme.
             elif [[ "$required" == "1" ]]; then
               echo "::error::missing required asset $src"
               exit 1

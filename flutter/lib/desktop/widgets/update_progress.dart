@@ -22,7 +22,6 @@ void promptSoftwareUpdate(String url) {
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     final app = bind.mainGetAppNameSync();
     final version = bind.mainGetNewVersion();
-    final canInstallInApp = isWindows || isMacOS;
     try {
       for (var i = 0; i < 20 && globalKey.currentState?.overlay == null; i++) {
         await Future.delayed(const Duration(milliseconds: 250));
@@ -39,15 +38,10 @@ void promptSoftwareUpdate(String url) {
                 _dismissedUpdateUrls.add(url);
                 close();
               }, isOutline: true),
-              dialogButton(canInstallInApp ? 'Update' : 'Download',
-                  onPressed: () {
+              dialogButton('Update', onPressed: () {
                 _dismissedUpdateUrls.add(url);
                 close();
-                if (canInstallInApp) {
-                  handleUpdate(url);
-                } else {
-                  launchUrl(Uri.parse(url));
-                }
+                handleUpdate(url);
               }),
             ],
             onCancel: () {
@@ -68,6 +62,17 @@ void promptSoftwareUpdate(String url) {
 }
 
 void handleUpdate(String releasePageUrl) {
+  platformFFI.registerEventHandler(
+    'install-update-file',
+    'install-update-file',
+    (evt) async {
+      final path = evt['path'];
+      if (path is String && path.isNotEmpty) {
+        await gFFI.invokeMethod('install_update', path);
+      }
+    },
+    replace: true,
+  );
   _isExtracting.value = false;
   String downloadUrl = releasePageUrl.replaceAll('tag', 'download');
   String version = downloadUrl.substring(downloadUrl.lastIndexOf('/') + 1);

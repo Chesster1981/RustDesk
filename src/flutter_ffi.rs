@@ -2886,7 +2886,34 @@ pub fn main_get_common(key: String) -> String {
                     "error:unsupported".to_owned()
                 };
             }
-            #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+            #[cfg(target_os = "linux")]
+            {
+                return if cfg!(target_arch = "x86_64") {
+                    format!("rustdesk-{_version}-x86_64.deb")
+                } else if cfg!(target_arch = "aarch64") {
+                    format!("rustdesk-{_version}-aarch64.deb")
+                } else {
+                    "error:unsupported".to_owned()
+                };
+            }
+            #[cfg(target_os = "android")]
+            {
+                return if cfg!(target_arch = "aarch64") {
+                    format!("rustdesk-{_version}-aarch64.apk")
+                } else if cfg!(target_arch = "arm") {
+                    format!("rustdesk-{_version}-armv7.apk")
+                } else if cfg!(target_arch = "x86_64") {
+                    format!("rustdesk-{_version}-x86_64.apk")
+                } else {
+                    "error:unsupported".to_owned()
+                };
+            }
+            #[cfg(not(any(
+                target_os = "windows",
+                target_os = "macos",
+                target_os = "linux",
+                target_os = "android"
+            )))]
             {
                 "error:unsupported".to_owned()
             }
@@ -2933,9 +2960,9 @@ pub fn main_set_common(_key: String, _value: String) {
             );
         });
     }
-    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    #[cfg(not(target_os = "ios"))]
     {
-        use crate::updater::get_download_file_from_url;
+        use crate::dcs_update::get_download_file_from_url;
         if _key == "download-new-version" {
             let download_url = _value.clone();
             let event_key = "download-new-version".to_owned();
@@ -2969,7 +2996,7 @@ pub fn main_set_common(_key: String, _value: String) {
                     // 1.4.0 does not support "--update"
                     // But we can assume that the new version supports it.
 
-                    #[cfg(any(target_os = "windows", target_os = "macos"))]
+                    #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
                     match crate::platform::update_to(f) {
                         Ok(_) => {
                             log::info!("Update process is launched successfully!");
@@ -2977,6 +3004,15 @@ pub fn main_set_common(_key: String, _value: String) {
                         Err(e) => {
                             log::error!("Failed to update to new version, {}", e);
                             fs::remove_file(f).ok();
+                        }
+                    }
+                    #[cfg(target_os = "android")]
+                    {
+                        let mut m = HashMap::new();
+                        m.insert("name", "install-update-file");
+                        m.insert("path", f);
+                        if let Ok(data) = serde_json::to_string(&m) {
+                            let _ = flutter::push_global_event(flutter::APP_TYPE_MAIN, data);
                         }
                     }
                 }
