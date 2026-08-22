@@ -5,6 +5,7 @@ import 'package:flutter_hbb/web/settings_page.dart';
 import 'package:get/get.dart';
 import '../../common.dart';
 import '../../common/widgets/chat_page.dart';
+import '../../consts.dart';
 import '../../models/platform_model.dart';
 import '../../models/state_model.dart';
 import 'connection_page.dart';
@@ -145,6 +146,51 @@ class HomePageState extends State<HomePage> {
                     ).marginSymmetric(horizontal: 2),
                 ],
               ),
+            ),
+          ),
+        ],
+      );
+    }
+    if (kUseRdClientHomeShell) {
+      final tablet = isTablet(context);
+      final logo = tablet ? 44.0 : 32.0;
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipOval(
+            child: Image.asset(
+              'assets/dcs_norway_logo.png',
+              width: logo,
+              height: logo,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (_, __, ___) => const Icon(Icons.desktop_windows),
+            ),
+          ),
+          SizedBox(width: tablet ? 10 : 8),
+          Flexible(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'DCS Norway',
+                  style: TextStyle(
+                    fontSize: tablet ? 20 : 16,
+                    fontWeight: FontWeight.w700,
+                    height: 1.15,
+                  ),
+                ),
+                Text(
+                  'Remote Desktop Client',
+                  style: TextStyle(
+                    fontSize: tablet ? 15 : 13,
+                    fontWeight: FontWeight.w500,
+                    height: 1.2,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

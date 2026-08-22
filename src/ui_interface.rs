@@ -52,6 +52,8 @@ pub struct LoginDeviceInfo {
     pub os: String,
     pub r#type: String,
     pub name: String,
+    /// Sent to BetterDesk `/api/login` for Windows client allowlisting.
+    pub app_name: String,
 }
 
 lazy_static::lazy_static! {
@@ -1330,6 +1332,7 @@ pub fn get_login_device_info() -> LoginDeviceInfo {
         os: std::env::consts::OS.to_owned(),
         r#type: "client".to_owned(),
         name: crate::common::hostname(),
+        app_name: crate::get_app_name(),
     }
 }
 

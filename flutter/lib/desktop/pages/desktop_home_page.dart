@@ -8,10 +8,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
 import 'package:flutter_hbb/common/widgets/custom_password.dart';
+import 'package:flutter_hbb/common/widgets/peer_tab_page.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
+import 'package:flutter_hbb/desktop/widgets/rd_account_bar.dart';
+import 'package:flutter_hbb/desktop/widgets/rd_home_header.dart';
+import 'package:flutter_hbb/desktop/widgets/rd_home_theme.dart';
+import 'package:flutter_hbb/desktop/widgets/rd_nav_sidebar.dart';
 import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/server_model.dart';
@@ -60,6 +65,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   Widget build(BuildContext context) {
     super.build(context);
     final isIncomingOnly = bind.isIncomingOnly();
+    if (kUseRdClientHomeShell) {
+      return _buildBlock(child: _buildRdClientShell(context));
+    }
     return _buildBlock(
         child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,6 +77,50 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         if (!isIncomingOnly) Expanded(child: buildRightPane(context)),
       ],
     ));
+  }
+
+  Widget _buildRdClientShell(BuildContext context) {
+    final isIncomingOnly = bind.isIncomingOnly();
+
+    // Pure connection client: no Your Desktop, no manual connect, no service footer.
+    // Follow Settings → Theme (light / dark / system); do not force darkTheme.
+    return Container(
+      color: RdHomeTheme.bgOf(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Obx(() {
+            final url = stateGlobal.updateUrl.value;
+            return RdHomeHeader(
+              banner: url.isEmpty ? null : buildHelpCards(url),
+            );
+          }),
+          if (!isIncomingOnly) const RdAccountBar(),
+          if (!isIncomingOnly)
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const RdNavSidebar(),
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(0, 10, 16, 16),
+                      decoration: RdHomeTheme.panel(context),
+                      clipBehavior: Clip.antiAlias,
+                      child: ChangeNotifierProvider.value(
+                        value: gFFI.peerTabModel,
+                        child: const PeerTabPage(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            const Expanded(child: SizedBox.shrink()),
+        ],
+      ),
+    );
   }
 
   Widget _buildBlock({required Widget child}) {
@@ -430,14 +482,17 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   Widget buildHelpCards(String updateUrl) {
-    if (!bind.isCustomClient() &&
-        updateUrl.isNotEmpty &&
+    // Stock RustDesk + DCS custom client: show update when a newer release URL is set.
+    if (updateUrl.isNotEmpty &&
         !isCardClosed &&
-        bind.mainUriPrefixSync().contains('rustdesk')) {
-      final isToUpdate = (isWindows || isMacOS) && bind.mainIsInstalled();
+        (bind.isCustomClient() ||
+            bind.mainUriPrefixSync().contains('rustdesk'))) {
+      final isToUpdate = bind.isCustomClient() ||
+          ((isWindows || isMacOS) && bind.mainIsInstalled());
       String btnText = isToUpdate ? 'Update' : 'Download';
       GestureTapCallback onPressed = () async {
-        final Uri url = Uri.parse('https://rustdesk.com/download');
+        final Uri url = Uri.parse(
+            bind.isCustomClient() ? updateUrl : 'https://rustdesk.com/download');
         await launchUrl(url);
       };
       if (isToUpdate) {
@@ -445,6 +500,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           handleUpdate(updateUrl);
         };
       }
+      final changelogLink = bind.isCustomClient()
+          ? updateUrl
+          : 'https://github.com/rustdesk/rustdesk/releases/tag/${bind.mainGetNewVersion()}';
       return buildInstallCard(
           "Status",
           "${translate("new-version-of-{${bind.mainGetAppNameSync()}}-tip")} (${bind.mainGetNewVersion()}).",
@@ -452,9 +510,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           onPressed,
           closeButton: true,
           help: isToUpdate ? 'Changelog' : null,
-          link: isToUpdate
-              ? 'https://github.com/rustdesk/rustdesk/releases/tag/${bind.mainGetNewVersion()}'
-              : null);
+          link: isToUpdate ? changelogLink : null);
     }
     if (systemError.isNotEmpty) {
       return buildInstallCard("", systemError, "", () {});
@@ -462,6 +518,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
 
     if (isWindows && !bind.isDisableInstallation()) {
       if (!bind.mainIsInstalled()) {
+        if (kUseRdClientHomeShell) {
+          // Pure client: never prompt to install as a host/service.
+          return const SizedBox.shrink();
+        }
         return buildInstallCard(
             "", bind.isOutgoingOnly() ? "" : "install_tip", "Install",
             () async {
@@ -469,14 +529,14 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           bind.mainGotoInstall();
         });
       } else if (bind.mainIsInstalledLowerVersion()) {
-        return buildInstallCard(
-            "Status", "Your installation is lower version.", "Click to upgrade",
-            () async {
-          await rustDeskWinManager.closeAllSubWindows();
-          bind.mainUpdateMe();
-        });
+        // Hidden for DCS Norway fork — upgrade prompt is not applicable.
+        return const SizedBox.shrink();
       }
     } else if (isMacOS) {
+      if (kUseRdClientHomeShell) {
+        // Pure client: no host daemon or hosting-permission prompts.
+        return const SizedBox.shrink();
+      }
       final isOutgoingOnly = bind.isOutgoingOnly();
       if (!(isOutgoingOnly || bind.mainIsCanScreenRecording(prompt: false))) {
         return buildInstallCard("Permissions", "config_screen", "Configure",
@@ -514,7 +574,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       //   });
       // }
     } else if (isLinux) {
-      if (bind.isOutgoingOnly()) {
+      if (kUseRdClientHomeShell || bind.isOutgoingOnly()) {
         return Container();
       }
       final LinuxCards = <Widget>[];

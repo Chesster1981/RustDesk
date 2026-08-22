@@ -1,0 +1,109 @@
+# DCS Norway Windows release — tag builds publish portable installer to GitHub Releases.
+# Clients check Chesster1981/RustDesk releases (not rustdesk.com).
+name: DCS Windows Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Git tag / asset version (e.g. 1.4.10). Required when not running from a tag ref."
+        required: false
+        type: string
+        default: ""
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-[0-9]+'
+      - 'dcs-v[0-9]+.[0-9]+.[0-9]+'
+      - 'dcs-[0-9]+.[0-9]+.[0-9]+'
+      - 'dcs-v[0-9]+.[0-9]+.[0-9]+-[0-9]+'
+      - 'dcs-[0-9]+.[0-9]+.[0-9]+-[0-9]+'
+
+# Reusable flutter-build.yml jobs (SBOM / softprops release) need contents:write.
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  resolve-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      tag: ${{ steps.ver.outputs.tag }}
+    steps:
+      - id: ver
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          TAG="${INPUT_TAG:-}"
+          if [ -z "$TAG" ]; then
+            if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+              TAG="${GITHUB_REF_NAME}"
+            else
+              echo "::error::Set workflow_dispatch input release_tag (e.g. 1.4.10), or push a version tag."
+              exit 1
+            fi
+          fi
+          # Asset filenames must use the same string as the release tag path segment
+          # (updater builds rustdesk-{tag}-x86_64.exe from the release page URL).
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Release tag/version=${TAG}"
+
+  run-flutter-tag-build:
+    needs: resolve-version
+    permissions:
+      contents: write
+      actions: write
+      id-token: write
+    uses: ./.github/workflows/flutter-build.yml
+    secrets: inherit
+    with:
+      upload-artifact: true
+      upload-tag: ${{ needs.resolve-version.outputs.tag }}
+
+  publish-dcs-alias:
+    name: Publish DCS-named installer alias
+    if: ${{ always() && needs.resolve-version.result == 'success' }}
+    needs: [resolve-version, run-flutter-tag-build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download, alias, and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.resolve-version.outputs.tag }}
+          VER: ${{ needs.resolve-version.outputs.version }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          DISPLAY="${VER}"
+          DISPLAY="${DISPLAY#dcs-}"
+          DISPLAY="${DISPLAY#v}"
+          mkdir -p ./out
+
+          alias_asset() {
+            local src="$1" dest="$2" required="${3:-0}"
+            if gh release download "$TAG" --repo "$REPO" --pattern "$src" --dir ./out; then
+              cp "./out/$src" "./out/$dest"
+              gh release upload "$TAG" "./out/$dest" --repo "$REPO" --clobber
+              # Keep rustdesk-* names so Windows, Linux, and Android in-app updaters share one asset scheme.
+            elif [[ "$required" == "1" ]]; then
+              echo "::error::missing required asset $src"
+              exit 1
+            else
+              echo "skip missing $src"
+            fi
+          }
+
+          alias_asset "rustdesk-${VER}-x86_64.exe" "DCS-Norway-RDC-${DISPLAY}-x86_64-install.exe" 1
+          alias_asset "rustdesk-${VER}-aarch64.apk" "DCS-Norway-RDC-${DISPLAY}-aarch64.apk"
+          alias_asset "rustdesk-${VER}-x86_64.deb" "DCS-Norway-RDC-${DISPLAY}-x86_64.deb"
+          ls -la ./out
+          gh release edit "$TAG" --repo "$REPO" --prerelease=false

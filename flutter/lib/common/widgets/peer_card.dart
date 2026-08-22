@@ -131,6 +131,59 @@ class _PeerCardState extends State<_PeerCard>
     return peerTabShowNote(widget.tab) && peer.note.isNotEmpty;
   }
 
+  // Betterdesk friendly name: local alias, AB/Devices, then PeerConfig (survives logout).
+  String _resolvedAlias(Peer peer) {
+    if (peer.alias.isNotEmpty) {
+      return peer.alias;
+    }
+    final fromAbOrGroup = gFFI.abModel.getDisplayNameForPeerId(peer.id);
+    if (fromAbOrGroup.isNotEmpty) {
+      return fromAbOrGroup;
+    }
+    return _peerConfigAlias(peer.id);
+  }
+
+  String _peerConfigAlias(String id) {
+    try {
+      final alias = bind.mainGetPeerOptionSync(id: id, key: 'alias');
+      if (alias.isNotEmpty) {
+        return alias;
+      }
+      final normalized = id.replaceAll(' ', '');
+      if (normalized != id) {
+        return bind.mainGetPeerOptionSync(id: normalized, key: 'alias');
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  String _peerCardPrimaryText(Peer peer) {
+    final alias = _resolvedAlias(peer);
+    if (alias.isNotEmpty) {
+      return alias;
+    }
+    if (peer.note.isNotEmpty) {
+      return peer.note;
+    }
+    if (peer.hostname.isNotEmpty) {
+      return peer.hostname;
+    }
+    return formatID(peer.id);
+  }
+
+  bool _peerCardHasFriendlyName(Peer peer) {
+    return _resolvedAlias(peer).isNotEmpty ||
+        peer.note.isNotEmpty ||
+        peer.hostname.isNotEmpty;
+  }
+
+  String _peerCardSecondaryText(Peer peer, String name) {
+    if (_peerCardHasFriendlyName(peer)) {
+      return formatID(peer.id);
+    }
+    return name;
+  }
+
   makeChild(bool isPortrait, Peer peer) {
     final name = hideUsernameOnCard == true
         ? peer.hostname
@@ -139,6 +192,15 @@ class _PeerCardState extends State<_PeerCard>
         fontSize: 11,
         color: Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.6));
     final showNote = _showNote(peer);
+    final primaryText = _peerCardPrimaryText(peer);
+    final secondaryText = _peerCardSecondaryText(peer, name);
+    final primaryStyle = Theme.of(context)
+        .textTheme
+        .titleSmall
+        ?.copyWith(fontWeight: FontWeight.bold);
+    final rdShell = kUseRdClientHomeShell && (isDesktop || isWebDesktop);
+    final leftW = isPortrait ? 50.0 : (rdShell ? 52.0 : 42.0);
+    final radius = rdShell ? 10.0 : _tileRadius;
 
     return Row(
       mainAxisSize: MainAxisSize.max,
@@ -147,14 +209,14 @@ class _PeerCardState extends State<_PeerCard>
             decoration: BoxDecoration(
               color: str2color('${peer.id}${peer.platform}', 0x7f),
               borderRadius: isPortrait
-                  ? BorderRadius.circular(_tileRadius)
+                  ? BorderRadius.circular(radius)
                   : BorderRadius.only(
-                      topLeft: Radius.circular(_tileRadius),
-                      bottomLeft: Radius.circular(_tileRadius),
+                      topLeft: Radius.circular(radius),
+                      bottomLeft: Radius.circular(radius),
                     ),
             ),
             alignment: Alignment.center,
-            width: isPortrait ? 50 : 42,
+            width: leftW,
             height: isPortrait ? 50 : null,
             child: Stack(
               children: [
@@ -173,8 +235,8 @@ class _PeerCardState extends State<_PeerCard>
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.background,
               borderRadius: BorderRadius.only(
-                topRight: Radius.circular(_tileRadius),
-                bottomRight: Radius.circular(_tileRadius),
+                topRight: Radius.circular(radius),
+                bottomRight: Radius.circular(radius),
               ),
             ),
             child: Row(
@@ -186,21 +248,21 @@ class _PeerCardState extends State<_PeerCard>
                         getOnline(isPortrait ? 4 : 8, peer.online),
                         Expanded(
                             child: Text(
-                          peer.alias.isEmpty ? formatID(peer.id) : peer.alias,
+                          primaryText,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleSmall,
+                          style: primaryStyle,
                         )),
                       ]).marginOnly(top: isPortrait ? 0 : 2),
                       Row(
                         children: [
                           Flexible(
                             child: Tooltip(
-                              message: name,
+                              message: secondaryText,
                               waitDuration: const Duration(seconds: 1),
                               child: Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  name,
+                                  secondaryText,
                                   style: isPortrait ? null : greyStyle,
                                   textAlign: TextAlign.start,
                                   overflow: TextOverflow.ellipsis,
@@ -220,14 +282,10 @@ class _PeerCardState extends State<_PeerCard>
                                     style: isPortrait ? null : greyStyle,
                                     textAlign: TextAlign.start,
                                     overflow: TextOverflow.ellipsis,
-                                  ).marginOnly(
-                                      left: peerCardUiType.value ==
-                                              PeerUiType.list
-                                          ? 32
-                                          : 4),
+                                  ),
                                 ),
                               ),
-                            )
+                            ),
                         ],
                       ),
                     ],
@@ -367,11 +425,35 @@ class _PeerCardState extends State<_PeerCard>
                           child: Row(children: [
                         getOnline(8, peer.online),
                         Expanded(
-                            child: Text(
-                          peer.alias.isEmpty ? formatID(peer.id) : peer.alias,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleSmall,
-                        )),
+                            child: Builder(builder: (context) {
+                          final primary = _peerCardPrimaryText(peer);
+                          final showIdBelow = _peerCardHasFriendlyName(peer);
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                primary,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              if (showIdBelow)
+                                Text(
+                                  formatID(peer.id),
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.color
+                                          ?.withOpacity(0.6)),
+                                ),
+                            ],
+                          );
+                        })),
                       ]).paddingSymmetric(vertical: 8)),
                       checkBoxOrActionMoreLandscape(peer, isTile: false),
                     ],
@@ -1556,18 +1638,23 @@ void connectInPeerTab(BuildContext context, Peer peer, PeerTabIndex tab,
         alias: peer.alias,
       );
     }
-    if (!gFFI.abModel.current.isPersonal()) {
-      if (peer.password.isNotEmpty) {
-        password = peer.password;
+    // Betterdesk/legacy personal AB stores plaintext password on the peer.
+    if (peer.password.isNotEmpty) {
+      password = peer.password;
+      isSharedPassword = true;
+    } else if (!gFFI.abModel.current.isPersonal()) {
+      final abPassword = gFFI.abModel.getdefaultSharedPassword();
+      if (abPassword != null) {
+        password = abPassword;
         isSharedPassword = true;
       }
-      if (password.isEmpty) {
-        final abPassword = gFFI.abModel.getdefaultSharedPassword();
-        if (abPassword != null) {
-          password = abPassword;
-          isSharedPassword = true;
-        }
-      }
+    }
+  } else if (tab == PeerTabIndex.group) {
+    // BetterDesk Accessible devices: Access Policy password from /api/peers.
+    // Logged-in users already passed ACL; do not prompt when password is present.
+    if (peer.password.isNotEmpty) {
+      password = peer.password;
+      isSharedPassword = true;
     }
   }
   connect(context, peer.id,

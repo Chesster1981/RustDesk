@@ -80,20 +80,26 @@ class _ConnectionPageState extends State<ConnectionPage> {
   @override
   Widget build(BuildContext context) {
     Provider.of<FfiModel>(context);
+    // DCS pure client: no manual Remote ID — only Available devices.
+    final showRemoteId = !kUseRdClientHomeShell;
     return CustomScrollView(
       slivers: [
         SliverList(
             delegate: SliverChildListDelegate([
           if (!bind.isCustomClient() && !isIOS)
             Obx(() => _buildUpdateUI(stateGlobal.updateUrl.value)),
-          _buildRemoteIDTextField(),
+          if (showRemoteId) _buildRemoteIDTextField(),
         ])),
         SliverFillRemaining(
           hasScrollBody: true,
           child: PeerTabPage(),
         )
       ],
-    ).marginOnly(top: 2, left: 10, right: 10);
+    ).marginOnly(
+      top: 2,
+      left: isTablet(context) ? 24 : 10,
+      right: isTablet(context) ? 24 : 10,
+    );
   }
 
   /// Callback for the connect button.

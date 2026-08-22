@@ -38,6 +38,7 @@ import 'desktop/pages/remote_page.dart' as desktop_remote;
 import 'desktop/pages/file_manager_page.dart' as desktop_file_manager;
 import 'desktop/pages/view_camera_page.dart' as desktop_view_camera;
 import 'package:flutter_hbb/desktop/widgets/remote_toolbar.dart';
+import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
 import 'models/model.dart';
 import 'models/platform_model.dart';
 
@@ -64,6 +65,9 @@ final isWebOnMacOs = isWebOnMacOS_;
 var isMobile = isAndroid || isIOS;
 var version = '';
 int androidVersion = 0;
+
+bool isTablet(BuildContext context) =>
+    MediaQuery.sizeOf(context).shortestSide >= 600;
 
 // Only used on Linux.
 // `windowManager.setResizable(false)` will reset the window size to the default size on Linux.
@@ -183,10 +187,10 @@ class ColorThemeExtension extends ThemeExtension<ColorThemeExtension> {
   );
 
   static final dark = ColorThemeExtension(
-    border: Color(0xFF555555),
-    border2: Color(0xFFE5E5E5),
+    border: Color(0xFF30363D),
+    border2: Color(0xFFE6EDF3),
     border3: Colors.white24,
-    highlight: Color(0xFF3F3F3F),
+    highlight: Color(0xFF21262D),
     drag_indicator: Colors.grey,
     shadow: Colors.grey,
     errorBannerBg: Color(0xFF470F2D),
@@ -473,9 +477,9 @@ class MyTheme {
   static ThemeData darkTheme = ThemeData(
     useMaterial3: false,
     brightness: Brightness.dark,
-    hoverColor: Color.fromARGB(255, 45, 46, 53),
-    scaffoldBackgroundColor: Color(0xFF18191E),
-    dialogBackgroundColor: Color(0xFF18191E),
+    hoverColor: Color(0xFF21262D),
+    scaffoldBackgroundColor: Color(0xFF0D1117),
+    dialogBackgroundColor: Color(0xFF0D1117),
     appBarTheme: AppBarTheme(
       shadowColor: Colors.transparent,
     ),
@@ -485,14 +489,14 @@ class MyTheme {
         borderRadius: BorderRadius.circular(18.0),
         side: BorderSide(
           width: 1,
-          color: Color(0xFF24252B),
+          color: Color(0xFF30363D),
         ),
       ),
     ),
     scrollbarTheme: scrollbarThemeDark,
     inputDecorationTheme: (isDesktop || isWebDesktop)
         ? InputDecorationTheme(
-            fillColor: Color(0xFF24252B),
+            fillColor: Color(0xFF161B22),
             filled: true,
             isDense: true,
             border: OutlineInputBorder(
@@ -511,7 +515,7 @@ class MyTheme {
         color: accent80,
       ),
     ),
-    cardColor: Color(0xFF24252B),
+    cardColor: Color(0xFF161B22),
     visualDensity: VisualDensity.adaptivePlatformDensity,
     tabBarTheme: const TabBarTheme(
       labelColor: Colors.white70,
@@ -562,9 +566,9 @@ class MyTheme {
         style: MenuStyle(
             backgroundColor: MaterialStatePropertyAll(Color(0xFF121212)))),
     colorScheme: ColorScheme.dark(
-      primary: Colors.blue,
+      primary: Color(0xFF58A6FF),
       secondary: accent,
-      background: Color(0xFF24252B),
+      background: Color(0xFF161B22),
     ),
     popupMenuTheme: PopupMenuThemeData(
         shape: RoundedRectangleBorder(
@@ -874,9 +878,11 @@ class OverlayDialogManager {
                   ? Colors.black12
                   : Colors.black45,
               child: StatefulBuilder(builder: (context, setState) {
+                final dialogChild =
+                    builder(setState, close, overlayState.context);
                 return Listener(
                   onPointerUp: (_) => innerClicked = true,
-                  child: builder(setState, close, overlayState.context),
+                  child: dialogChild,
                 );
               })));
     });
@@ -2607,6 +2613,17 @@ connect(BuildContext context, String id,
   assert(!(isFileTransfer && isTcpTunneling && isRDP),
       "more than one connect type");
 
+  // Apply Betterdesk/AB stored password when the caller did not supply one.
+  if (password == null || password.isEmpty) {
+    try {
+      final abPassword = gFFI.abModel.getPasswordForPeerId(id);
+      if (abPassword != null && abPassword.isNotEmpty) {
+        password = abPassword;
+        isSharedPassword = true;
+      }
+    } catch (_) {}
+  }
+
   if (isDesktop) {
     if (desktopType == DesktopType.main) {
       await connectMainDesktop(
@@ -4080,21 +4097,26 @@ void earlyAssert() {
   assert('\1' == '1');
 }
 
+Timer? _softwareUpdateCheckTimer;
+
 void checkUpdate() {
-  if (!isWeb) {
-    if (!bind.isCustomClient()) {
-      platformFFI.registerEventHandler(
-          kCheckSoftwareUpdateFinish, kCheckSoftwareUpdateFinish,
-          (Map<String, dynamic> evt) async {
-        if (evt['url'] is String) {
-          stateGlobal.updateUrl.value = evt['url'];
-        }
-      });
-      Timer(const Duration(seconds: 1), () async {
-        bind.mainGetSoftwareUpdateUrl();
-      });
-    }
+  if (isWeb) {
+    return;
   }
+  platformFFI.registerEventHandler(
+      kCheckSoftwareUpdateFinish, kCheckSoftwareUpdateFinish,
+      (Map<String, dynamic> evt) async {
+    if (evt['url'] is String) {
+      final url = evt['url'] as String;
+      stateGlobal.updateUrl.value = url;
+      promptSoftwareUpdate(url);
+    }
+  }, replace: true);
+  void runCheck() => bind.mainGetSoftwareUpdateUrl();
+  Timer(const Duration(seconds: 1), runCheck);
+  _softwareUpdateCheckTimer?.cancel();
+  _softwareUpdateCheckTimer =
+      Timer.periodic(const Duration(hours: 1), (_) => runCheck());
 }
 
 // https://github.com/flutter/flutter/issues/153560#issuecomment-2497160535

@@ -1557,6 +1557,11 @@ pub fn quit_gui() {
     unsafe { gtk_main_quit() };
 }
 
+pub fn update_to(file: &str) -> ResultType<()> {
+    Command::new("xdg-open").arg(file).spawn()?;
+    Ok(())
+}
+
 /*
 pub fn exec_privileged(args: &[&str]) -> ResultType<Child> {
     Ok(Command::new("pkexec").args(args).spawn()?)

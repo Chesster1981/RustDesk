@@ -19,6 +19,12 @@ on:
 
 jobs:
   run-ci:
+    # generate-sbom in flutter-build.yml requests contents:write; callers default to read.
+    permissions:
+      contents: write
+      actions: write
+      id-token: write
     uses: ./.github/workflows/flutter-build.yml
+    secrets: inherit
     with:
       upload-artifact: false
